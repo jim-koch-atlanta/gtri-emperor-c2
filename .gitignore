@@ -1,0 +1,18 @@
+# Build output
+/build/
+build*/
+cmake-build-*/
+
+# Editor / OS cruft
+.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# Python (viz layer, added later)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+CLAUDE.md

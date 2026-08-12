@@ -1,0 +1,153 @@
+// robot.proto — Emperor C2 wire protocol (TECH_SPEC §4).
+// Source of truth: never hand-edit generated code. Evolved from goose.proto.
+syntax = "proto3";
+
+package emperor;
+
+import "google/protobuf/timestamp.proto";
+
+// ---------------------------------------------------------------------------
+// Telemetry (robot -> C2).
+// Ordering & duplicate rejection use `seq`, NEVER timestamps (§4). Server
+// receive time — not this event `timestamp` — drives age_ms and the watchdog.
+// ---------------------------------------------------------------------------
+message Telemetry {
+  string robot_id = 1;
+  uint64 seq = 2;                           // per-robot, monotonically increasing
+  google.protobuf.Timestamp timestamp = 3;  // event time — display/debug only
+  double x = 4;
+  double y = 5;
+  double heading = 6;
+  double speed = 7;   // V
+  double radius = 8;  // R
+}
+
+// ---------------------------------------------------------------------------
+// Command parameters. Any subset may be present (proto3 field presence); a
+// robot applies only the fields set, teleporting the model (Consideration #1).
+// ---------------------------------------------------------------------------
+message SetParameters {
+  optional double speed = 1;     // V
+  optional double radius = 2;    // R
+  optional double center_x = 3;  // x0
+  optional double center_y = 4;  // y0
+  optional double theta = 5;     // theta0 (phase)
+}
+
+// OperatorCommand (GUI -> C2 seam). Multi-targeting is C2 semantics: the
+// Command Tracker fans one OperatorCommand into per-robot RobotCommands.
+message OperatorCommand {
+  string command_id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  google.protobuf.Timestamp expiry = 3;   // validity deadline; stale commands die
+  repeated string targets = 4;            // robot_ids
+  oneof payload {
+    SetParameters set_parameters = 11;
+  }
+}
+
+// RobotCommand (C2 -> vehicle seam). Single target only — the vehicle protocol
+// never sees group semantics, keeping a future MAVLink/DDS gateway honest (§6).
+message RobotCommand {
+  string command_id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  google.protobuf.Timestamp expiry = 3;
+  string robot_id = 4;
+  oneof payload {
+    SetParameters set_parameters = 11;
+  }
+}
+
+// Robot's ack of a command. This sim collapses ack + apply into one result;
+// the tracker's design accommodates a finer ladder (§5).
+enum ResultCode {
+  RESULT_UNSPECIFIED = 0;
+  RESULT_APPLIED = 1;
+  RESULT_REJECTED = 2;
+}
+
+message CommandResult {
+  string command_id = 1;
+  string robot_id = 2;
+  ResultCode result = 3;
+  string detail = 4;
+}
+
+// Uplink: one stream, two message kinds — the goose pattern unchanged (§4).
+message Uplink {
+  oneof kind {
+    Telemetry telemetry = 1;
+    CommandResult command_result = 2;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// SwarmState (C2 -> operator). Full-state broadcast; delta/interest-management
+// are the documented scaling path (§9), not built.
+// ---------------------------------------------------------------------------
+enum LinkStatus {
+  LINK_STATUS_UNSPECIFIED = 0;
+  LINK_LIVE = 1;
+  LINK_STALE = 2;
+  LINK_LOST = 3;
+}
+
+message RobotState {
+  Telemetry telemetry = 1;
+  LinkStatus link_status = 2;
+  int64 age_ms = 3;   // from server receive time (§4)
+}
+
+// Per-target command lifecycle (§5). The robot only ever reports APPLIED /
+// REJECTED (ResultCode); PENDING/SENT/EXPIRED/ROBOT_OFFLINE are C2 states.
+enum CommandState {
+  CMD_STATE_UNSPECIFIED = 0;
+  CMD_PENDING = 1;
+  CMD_SENT = 2;
+  CMD_APPLIED = 3;
+  CMD_REJECTED = 4;
+  CMD_EXPIRED = 5;
+  CMD_ROBOT_OFFLINE = 6;
+}
+
+message TargetStatus {
+  string robot_id = 1;
+  CommandState state = 2;
+  string detail = 3;
+}
+
+message CommandStatus {
+  string command_id = 1;
+  repeated TargetStatus targets = 2;   // per-target states aggregate in the GUI
+}
+
+message SwarmState {
+  uint64 seq = 1;                            // server broadcast seq, monotonic
+  google.protobuf.Timestamp server_time = 2;
+  repeated RobotState robots = 3;
+  repeated CommandStatus commands = 4;
+}
+
+// ---------------------------------------------------------------------------
+// Services (§4).
+// ---------------------------------------------------------------------------
+message SubscribeRequest {}   // reserved for interest-management filters (§9)
+
+message Accepted {
+  string command_id = 1;
+  bool accepted = 2;
+  string detail = 3;
+}
+
+// Vehicle seam: vehicle dials out, no inbound ports. One bidi stream carries
+// Uplink up and RobotCommand down.
+service RobotLink {
+  rpc Link(stream Uplink) returns (stream RobotCommand);
+}
+
+// Operator seam: UI-framework-neutral by construction (§9). Subscribe streams
+// SwarmState; SendCommand submits one OperatorCommand and returns acceptance.
+service OperatorFeed {
+  rpc Subscribe(SubscribeRequest) returns (stream SwarmState);
+  rpc SendCommand(OperatorCommand) returns (Accepted);
+}
