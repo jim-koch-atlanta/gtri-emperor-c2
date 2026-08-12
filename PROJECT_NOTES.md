@@ -74,9 +74,17 @@ Concrete first steps:
    `.csproj` → C# stubs generate on `dotnet build`.
 3. Stand up a throwaway server stub emitting `SwarmState` (or reuse the goose
    server shape) so the window has live data to plot on a `Canvas`.
-4. Cross the WSL2↔Windows boundary over `localhost` (note the gRPC address:
-   Windows client → WSL server may need the WSL IP, not `127.0.0.1`, depending
-   on WSL networking mode — verify early, it's a classic time-sink).
+4. Cross the WSL2↔Windows boundary — **PRE-VERIFIED Wed night, no time-sink tomorrow:**
+   - **Client connection string = `http://localhost:50051`.** Confirmed: Windows
+     PowerShell `Test-NetConnection localhost -Port 50051` → `TcpTestSucceeded=True`,
+     full TCP handshake landed in a WSL listener (`conn from 127.0.0.1`).
+   - **The one requirement: the WSL server must bind `0.0.0.0:50051`, NOT
+     `127.0.0.1`.** WSL2 localhost-forwarding only relays ports bound to all
+     interfaces. In gRPC C++ that's `builder.AddListeningPort("0.0.0.0:50051", ...)`.
+   - Networking mode here is default **NAT** (WSL IP `172.29.165.129`, no
+     `.wslconfig`); localhost forwarding works fine in it — mirrored mode not needed.
+   - Fallback if it ever regresses: use the WSL IP `hostname -I` (was
+     `172.29.165.129`, but it can change across reboots — re-check, don't hardcode).
 
 `gui/` holds only a README right now — intentionally outside the CMake build
 (Windows-side, dotnet toolchain).
@@ -84,6 +92,8 @@ Concrete first steps:
 ---
 
 ## ACTION FOR JIM TONIGHT
-- **Install the .NET 8 SDK on Windows** if not already done — the Thu-AM spike
-  is blocked without it. Verify with `dotnet --version` in a Windows shell.
-- Then **stop for the evening.**
+- ✅ **.NET 8 SDK on Windows — confirmed** (`dotnet --version` works from a
+  Windows shell; not from WSL bash, which is correct — WPF is Windows-only).
+- ✅ **WSL↔Windows gRPC boundary — pre-verified** (see spike step 4:
+  `http://localhost:50051`, server binds `0.0.0.0`).
+- Nothing left. **Stop for the evening.**
