@@ -1,0 +1,34 @@
+<!-- THROWAWAY TEACHING PROTOTYPE — study, then REWRITE in the real spike. Do not copy wholesale. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>EmperorGuiPrototype</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.35.1" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.83.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.83.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- Grpc.Tools codegen. The proto is the repo's source of truth (TECH_SPEC §4);
+       we compile it as CLIENT stubs only (the GUI never serves RobotLink).
+       ProtoRoot pins the import base so the ..\..\..\ path yields clean generated
+       file names (Robot.cs / RobotGrpc.cs under obj/). The well-known type import
+       google/protobuf/timestamp.proto resolves from Grpc.Tools' bundled copies —
+       no extra -I needed, mirroring the C++ side (PROJECT_NOTES gotcha). -->
+  <ItemGroup>
+    <Protobuf Include="..\..\..\proto\robot.proto"
+              ProtoRoot="..\..\..\proto"
+              GrpcServices="Client" />
+  </ItemGroup>
+
+</Project>

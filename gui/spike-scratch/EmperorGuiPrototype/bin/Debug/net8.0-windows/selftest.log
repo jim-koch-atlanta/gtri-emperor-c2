@@ -1,0 +1,11 @@
+EmperorGuiPrototype --selftest : headless tactical-pipeline check
+=================================================================
+frames consumed .......... 25   (expect ~25 at 5 Hz over 5 s)
+robots tracked ........... 6   (expect 6)
+screen bounds ............ x[-10,894] y[-166,780]  spread 904x946px
+  -> finite, viewport-scale PASS
+max trail length ......... 25   -> grew: PASS
+watchdog STALE observed .. PASS   robots: R-01
+watchdog STALE->LIVE ..... PASS   robots: R-01
+=================================================================
+RESULT: PASS -- tactical pipeline produces correct geometry + watchdog cycle.

@@ -1,0 +1,9 @@
+<!-- THROWAWAY TEACHING PROTOTYPE — study, then REWRITE in the real spike. Do not copy wholesale. -->
+<Application x:Class="EmperorGuiPrototype.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:EmperorGuiPrototype">
+    <!-- No StartupUri: App.OnStartup builds the window in code so it can inject
+         the chosen IFeed (FakeFeed by default, GrpcFeed when the grpc flag is set). -->
+    <Application.Resources />
+</Application>
