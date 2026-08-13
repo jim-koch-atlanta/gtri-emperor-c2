@@ -60,40 +60,97 @@ is fresh in-CI and robot.proto uses only long-stable proto3 features.
 
 ---
 
-## NEXT SESSION ENTRY POINT — Thu AM: WPF spike (timeboxed to midday, §12)
+## WPF SPIKE — PASSED (Thu 2026-08-13, ~2h session)
 
-Goal: **`robot.proto` → C# via `Grpc.Tools`; one WPF window; dots moving from
-live server data by noon.** Pass → WPF confirmed. Fail at the box → fallback
-executes with no renegotiation: **TypeScript/React web UI** (§4). Do not let
-sunk cost extend the box; warn at ~80%.
+**VERDICT: PASS.** Six dots orbit in a native WPF window, driven by Jim's own
+code. **WPF is confirmed as the operator-GUI stack** — the TypeScript/React
+fallback (§4) is NOT needed.
 
-Concrete first steps:
-1. On Windows: `dotnet new wpf -o operator_gui` under `gui/`.
-2. Add `Grpc.Net.Client`, `Google.Protobuf`, `Grpc.Tools` packages; add
-   `<Protobuf Include="..\proto\robot.proto" GrpcServices="Client" />` to the
-   `.csproj` → C# stubs generate on `dotnet build`.
-3. Stand up a throwaway server stub emitting `SwarmState` (or reuse the goose
-   server shape) so the window has live data to plot on a `Canvas`.
-4. Cross the WSL2↔Windows boundary — **PRE-VERIFIED Wed night, no time-sink tomorrow:**
-   - **Client connection string = `http://localhost:50051`.** Confirmed: Windows
-     PowerShell `Test-NetConnection localhost -Port 50051` → `TcpTestSucceeded=True`,
-     full TCP handshake landed in a WSL listener (`conn from 127.0.0.1`).
-   - **The one requirement: the WSL server must bind `0.0.0.0:50051`, NOT
-     `127.0.0.1`.** WSL2 localhost-forwarding only relays ports bound to all
-     interfaces. In gRPC C++ that's `builder.AddListeningPort("0.0.0.0:50051", ...)`.
-   - Networking mode here is default **NAT** (WSL IP `172.29.165.129`, no
-     `.wslconfig`); localhost forwarding works fine in it — mirrored mode not needed.
-   - Fallback if it ever regresses: use the WSL IP `hostname -I` (was
-     `172.29.165.129`, but it can change across reboots — re-check, don't hardcode).
+**GREEN (built + ran locally; 0 errors, 2 nullable warnings — see gotchas):**
+- `gui/operator_gui` — .NET 8 WPF (`net8.0-windows`), separate from the CMake
+  build (Windows/dotnet side).
+- **`robot.proto` → C# stubs via `Grpc.Tools` in *this* project** (Robot.cs /
+  RobotGrpc.cs under obj/). The proto seam is proven on the real GUI project,
+  not just the throwaway. csproj line:
+  `<Protobuf Include="..\..\proto\robot.proto" ProtoRoot="..\..\proto" GrpcServices="Client" />`
+  Packages: Grpc.Net.Client + Google.Protobuf + Grpc.Tools. (Note the path is
+  `..\..\` — operator_gui sits directly under gui/, unlike the scratch project.)
+- MVVM foundation, **all typed by Jim:**
+  - `ObservableObject` — INotifyPropertyChanged + `SetField<T>` with `[CallerMemberName]`.
+  - `RobotViewModel` — Id, X, Y, CanvasX, CanvasY, Heading, Status.
+  - `MainViewModel` — `ObservableCollection<RobotViewModel>`.
+  - `MainWindow.xaml` — ItemsControl + Canvas ItemsPanel + DataTemplate
+    (ellipse + label) + **ItemContainerStyle** binding Canvas.Left/Top.
+  - Motion — `DispatcherTimer` @ 10 Hz (100 ms) mutating VM props ON THE UI
+    THREAD. No background thread / marshaling today — deliberate (see Friday).
+  - `WorldToCanvas(x,y)` — identity today; the seam for scale/offset + pan/zoom.
 
-`gui/` holds only a README right now — intentionally outside the CMake build
-(Windows-side, dotnet toolchain).
+**WPF concepts Jim now OWNS (typed them, can defend Monday):**
+- INotifyPropertyChanged + SetField/[CallerMemberName]; **binding targets
+  PROPERTIES, never fields** (learned via a live bug — fields bind silently to nothing).
+- DataContext wiring (XAML `<Window.DataContext><vm:MainViewModel/>`), and
+  clr-namespace / `xmlns:vm` so XAML resolves VM types.
+- ObservableCollection as the bindable list.
+- ItemsControl / ItemsPanel(Canvas) / DataTemplate / **ItemContainerStyle** —
+  and the WHY: a Canvas positions its DIRECT children (the generated
+  `ContentPresenter` container), not the templated ellipse; so Canvas.Left/Top
+  binds on the container via ItemContainerStyle, not in the template.
+- Canvas attached properties (incl. dotted `Property="Canvas.Left"` in a Setter).
+- **DispatcherTimer ticks on the UI thread → no marshaling.** Thread affinity =
+  "UI objects are touched only on the UI thread," and it's the THREAD that
+  matters, not where in the code the line lives.
+- world→canvas transform as a seam separating model coords from pixels.
+
+**Deferred / still-simple (scoped OUT of the spike, not bugs):**
+- Motion is uniform (same R/V/θ, centers on a diagonal). Distinct params belong
+  to the C++ robot_sim processes; FakeFeed just stands in. (Jim's framing:
+  "the operator client is a renderer; motion lives in the robot processes.")
+- `WorldToCanvas` is identity (scale=1, no offset/flip). X/Y now carry world
+  meaning but the transform is a no-op.
+- No trails / selection / roster / command panel / styling / GrpcFeed yet.
+
+**Gotchas hit:**
+- **NuGet had NO package source** ("No sources found") → must run
+  `dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org`
+  before packages resolve. (Confirms MORNING_REPORT gotcha #1 — decide the
+  team's real feed.)
+- Binding to public **fields** does nothing → must be properties.
+- Copy-paste in the ctor (r1/r1/r1 receivers) → dots stacked at (0,0): the
+  classic "one dot at origin" symptom.
+- `Heading` getter self-reference (`get => Heading`) → infinite recursion /
+  StackOverflow landmine; fixed.
+- Pre-existing empty `gui/operator_gui/` dir → `dotnet new wpf --force`.
+- **OPEN (2 warnings): CS8618 nullable** on `_Id`/`_Status` in RobotViewModel —
+  nullable flow analysis doesn't credit SetField's `ref` assignment. 30-sec
+  fix: make `Id` a get-only auto-prop (never changes) + default `_Status = ""`.
+  Clean before Friday to hold the warning-clean gate.
 
 ---
 
-## ACTION FOR JIM TONIGHT
-- ✅ **.NET 8 SDK on Windows — confirmed** (`dotnet --version` works from a
-  Windows shell; not from WSL bash, which is correct — WPF is Windows-only).
-- ✅ **WSL↔Windows gRPC boundary — pre-verified** (see spike step 4:
-  `http://localhost:50051`, server binds `0.0.0.0`).
-- Nothing left. **Stop for the evening.**
+## NEXT SESSION ENTRY POINT — Fri: GUI completion on today's WPF foundation
+
+Build order (each green before the next), per TECH_SPEC §3 / §12:
+
+1. **`GrpcFeed` against the REAL C++ server FIRST** (before roster/selection).
+   - **This is where today's deferred threading lands, WITH a concrete reason:**
+     the gRPC server stream delivers `SwarmState` on a **background thread**, so
+     setting VM props there crosses the thread boundary → NOW you marshal back
+     to the UI thread (`Dispatcher.InvokeAsync` or a captured
+     `SynchronizationContext`; pick one, justify it). Today's DispatcherTimer
+     needed none of that because it already ticked on the UI thread — swap the
+     timer's role for a stream reader that marshals.
+   - Put it behind an `IFeed` seam (FakeFeed | GrpcFeed) so the app still runs
+     standalone; pipeline currency = generated `Emperor.SwarmState`.
+   - **Boundary (pre-verified Wed):** client = `http://localhost:50051`; the C++
+     server MUST bind `0.0.0.0:50051` (NOT 127.0.0.1) for WSL2 localhost
+     forwarding. h2c cleartext HTTP/2 (MORNING_REPORT gotcha #7). WSL IP
+     fallback `hostname -I` if localhost ever regresses (don't hardcode).
+2. Then TECH_SPEC §3: roster ListBox + two-way selection sync (map↔roster),
+   status-bar LIVE/STALE/LOST counts, then trails, then command panel + status
+   strip (§5, the centerpiece).
+3. Real world→canvas transform (scale + offset + Fit All) once positions arrive
+   from the server frame; pan/zoom after that.
+
+**Reference only, NEVER copy:** `gui/spike-scratch/` + `MORNING_REPORT.md` —
+last night's throwaway shows all of the above assembled. Study the shape, then
+write clean in `gui/operator_gui/`.
