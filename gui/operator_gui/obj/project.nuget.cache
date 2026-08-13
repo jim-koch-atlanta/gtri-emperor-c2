@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "dgSpecHash": "MCSaPkLLP/M=",
+  "success": true,
+  "projectFilePath": "C:\\dev\\gtri-emperor-c2\\gui\\operator_gui\\operator_gui.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\jimko\\.nuget\\packages\\google.protobuf\\3.35.1\\google.protobuf.3.35.1.nupkg.sha512",
+    "C:\\Users\\jimko\\.nuget\\packages\\grpc.core.api\\2.83.0\\grpc.core.api.2.83.0.nupkg.sha512",
+    "C:\\Users\\jimko\\.nuget\\packages\\grpc.net.client\\2.83.0\\grpc.net.client.2.83.0.nupkg.sha512",
+    "C:\\Users\\jimko\\.nuget\\packages\\grpc.net.common\\2.83.0\\grpc.net.common.2.83.0.nupkg.sha512",
+    "C:\\Users\\jimko\\.nuget\\packages\\grpc.tools\\2.83.0\\grpc.tools.2.83.0.nupkg.sha512",
+    "C:\\Users\\jimko\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\8.0.0\\microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512",
+    "C:\\Users\\jimko\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\8.0.0\\microsoft.extensions.logging.abstractions.8.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
