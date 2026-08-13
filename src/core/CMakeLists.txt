@@ -1,4 +1,6 @@
-add_library(emperor_c2_core STATIC grpc_robot_gateway.cpp)
+add_library(emperor_c2_core STATIC
+    grpc_robot_gateway.cpp
+    track_store.cpp)
 
 # robot_types.hpp lives here; consumers get it via PUBLIC include path.
 target_include_directories(emperor_c2_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -13,11 +13,15 @@ set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(googletest)
 
-add_executable(emperor_c2_tests telemetry_test.cpp)
+add_executable(emperor_c2_tests
+    telemetry_test.cpp
+    track_store_test.cpp)
 
+# emperor_c2_core brings TrackStore + the domain types, and PUBLIC-links
+# emperor_c2_proto so the proto headers still reach telemetry_test.cpp.
 target_link_libraries(emperor_c2_tests
     PRIVATE
-        emperor_c2_proto
+        emperor_c2_core
         emperor_c2_warnings
         GTest::gtest_main)
 

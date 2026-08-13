@@ -4,6 +4,61 @@ Session-to-session state. Terse, mechanism-level. Read after docs/TECH_SPEC.md.
 
 ---
 
+## Backend session (Thu 2026-08-13 pm, ~3.75h) — where we stopped
+
+**GREEN (built + tested, -Wall -Wextra clean):**
+- **Organ 1 — gateway seam** (`src/core/grpc_robot_gateway.{hpp,cpp}`): domain
+  types (`namespace c2`, NOT `emperor` — that's the proto package, collides),
+  `GrpcRobotGateway : RobotLink::Service`. Link() registers per-robot LinkState
+  on first telemetry, routes Uplink oneof via `kind_case()` to
+  on_telemetry_/on_command_result_ callbacks, goose writer-thread for fan-down.
+  Registry mutex-guarded on all paths. **Committed.**
+- **Organ 2 — robot_sim** (`src/robot_sim/main.cpp`): CLI
+  `robot_id x0 y0 R V theta0 [addr]`; single-writer funnel (main writes
+  telemetry @10Hz + drains result queue; reader jthread applies under mutex,
+  enqueues result). Motion: φ=V/R·t+θ₀, heading=φ+π/2. Partial apply, R≤0
+  rejected. **Committed.**
+- **Organ 3a — TrackStore** (`src/core/track_store.{hpp,cpp}` + test):
+  `map_mutex_` + `unordered_map<string, shared_ptr<Track>>`, `Track{mutex;
+  RobotTelemetry latest;}`. Latest-wins BY SEQ; two-level locking. 6 gtests
+  green (§10). **UNCOMMITTED** — see below.
+
+**Gotchas banked this session (all real, all bit us):**
+- `std::numbers::pi`, NOT `M_PI` — strict `-std=c++20` hides M_PI behind
+  `__USE_MISC`. Include `<numbers>`.
+- **gRPC stream = 1 reader + 1 writer, never 2 writers.** robot_sim's reader
+  thread must NOT write CommandResults itself → enqueue, main-thread writer
+  drains. (Dual of the server's Link.)
+- TrackStore per-`Track` mutex does NOT protect the map → need `map_mutex_`
+  too. find-or-create must be ONE atomic lock hold.
+- proto fields are accessor *methods* (`t.robot_id()`); timestamp needs
+  chrono↔`google::protobuf::Timestamp` split (seconds + nanos remainder).
+
+**NOT STARTED — backend remaining (this is where Organ 3 continues):**
+- **Organ 3b — LinkState watchdog:** per-robot, on **server receive time**
+  (monotonic clock, NOT robot timestamp), LIVE→STALE→LOST at
+  T_stale=1.5s / T_lost=10s (configurable). Where age_ms comes from.
+- **Organ 3c — CommandTracker:** §5 lifecycle PENDING→SENT→APPLIED +
+  REJECTED/EXPIRED/ROBOT_OFFLINE; OperatorCommand→per-robot RobotCommand
+  fan-out; terminal-state retention window (bounded SwarmState.commands).
+- **Organ 4 — OperatorFeed:** Subscribe = server-stream SwarmState @5Hz
+  (assembled from organs, seq monotonic); SendCommand = validate + tracker
+  custody + return Accepted{command_id} immediately (custody ≠ delivery).
+- **Organs 5–7:** launch_swarm.sh; integration tests (§10); gates (ASan/UBSan,
+  TSan on multi-link w/ adapted tsan.supp, CI).
+
+### >>> NEXT BACKEND ENTRY POINT: LinkState watchdog (Organ 3b) <<<
+Server stamps **monotonic receive time** on each accepted telemetry (in the
+gateway's on_telemetry_ path or TrackStore). Watchdog compares now−last_rx to
+the two thresholds. This is the input to age_ms and the roster LIVE/STALE/LOST.
+NB: robot_sim can't be *exercised* end-to-end until Organ 4 exists (nothing
+accepts its link yet) — the gateway/robot_sim are compile+unit verified only.
+
+Note: Thu-pm "backend complete" slipped — watchdog/tracker/feed remain. Fri
+must either finish backend first or re-plan GUI vs backend split.
+
+---
+
 ## Status board (as of Wed 2026-08-12, skeleton session)
 
 **GREEN (validated locally):**
