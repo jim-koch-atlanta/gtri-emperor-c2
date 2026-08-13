@@ -16,7 +16,8 @@ FetchContent_MakeAvailable(googletest)
 add_executable(emperor_c2_tests
     telemetry_test.cpp
     track_store_test.cpp
-    link_watchdog_test.cpp)
+    link_watchdog_test.cpp
+    command_tracker_test.cpp)
 
 # emperor_c2_core brings TrackStore + the domain types, and PUBLIC-links
 # emperor_c2_proto so the proto headers still reach telemetry_test.cpp.

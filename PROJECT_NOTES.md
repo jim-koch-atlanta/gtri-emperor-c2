@@ -49,23 +49,32 @@ Session-to-session state. Terse, mechanism-level. Read after docs/TECH_SPEC.md.
 - **Organs 5–7:** launch_swarm.sh; integration tests (§10); gates (ASan/UBSan,
   TSan on multi-link w/ adapted tsan.supp, CI).
 
-### >>> NEXT BACKEND ENTRY POINT: CommandTracker (Organ 3c) <<<
-Last core organ, most intricate. §5 lifecycle per command per target:
-PENDING→SENT→APPLIED, + REJECTED/EXPIRED/ROBOT_OFFLINE. Fan-out: one
-OperatorCommand (targets[]) → N per-robot RobotCommands, each tracked.
-EXPIRED: a SENT command with no result by its deadline. ROBOT_OFFLINE: target
-already LOST at dispatch → surfaced immediately, no send. Terminal-state
-retention window so SwarmState.commands stays bounded. Deterministically
-testable like the watchdog (inject 'now').
+### >>> NEXT BACKEND ENTRY POINT: OperatorFeed + server glue (Organ 4) <<<
+All four core organs are DONE and unit-tested (18 gtests). Organ 4 is the glue
+that finally wires + exercises them end-to-end — first real run of the whole
+backend.
 
-Then Organ 4 (OperatorFeed) wires everything: Subscribe streams SwarmState @5Hz
-(TrackStore.snapshot + LinkWatchdog.classify + tracker states); SendCommand →
-validate → tracker custody → Accepted{command_id} immediately.
+Two gRPC services on the server:
+- **Subscribe(SubscribeRequest) -> stream SwarmState @5Hz.** Each tick: run
+  `CommandTracker.sweepExpired(now)`, then assemble from `TrackStore.snapshot()`
+  + `LinkWatchdog.classify(id, now)` per robot + `CommandTracker.snapshot()`.
+  Translate domain→proto (c2::LinkStatus→emperor::LinkStatus, CommandState→proto,
+  chrono→Timestamp). seq monotonic per broadcast.
+- **SendCommand(OperatorCommand) -> Accepted.** Validate; `tracker.onCommandSubmitted(
+  cmd, is_offline, now)` where `is_offline = [&](id){ return watchdog.classify(
+  id,now).status==LOST; }`; dispatch the returned RobotCommands via
+  `gateway.SendCommand`, calling `tracker.onCommandSent` on each; return
+  Accepted{command_id} immediately (custody ≠ delivery).
 
-**Wiring note (nothing calls the organs yet):** the server's on_telemetry_
-must call BOTH `TrackStore.upsert` AND `LinkWatchdog.record`; on_command_result_
-feeds CommandTracker. Gateway/robot_sim/store/watchdog are compile+unit verified
-only — not exercised end-to-end until Organ 4 exists.
+**Server wiring (the callbacks the gateway needs):**
+- on_telemetry_  = `[&](RobotTelemetry t){ store.upsert(t); watchdog.record(t.robot_id, steady_now()); }`
+- on_command_result_ = `[&](CommandResult r){ tracker.onCommandResult(r, sys_now()); }`
+
+Then Organ 5 (launch_swarm.sh) + Organ 6 (integration tests, §10) can actually
+run — robot_sim gets exercised for the first time here.
+
+NB clock split: watchdog uses steady_clock (monotonic); CommandTracker + event
+timestamps use system_clock. Don't cross them.
 
 Note: Thu-pm "backend complete" slipped — tracker + feed remain. Fri must
 either finish backend first or re-plan GUI vs backend split.

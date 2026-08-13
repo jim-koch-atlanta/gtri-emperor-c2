@@ -1,4 +1,5 @@
 add_library(emperor_c2_core STATIC
+    command_tracker.cpp
     grpc_robot_gateway.cpp
     track_store.cpp
     link_watchdog.cpp)
