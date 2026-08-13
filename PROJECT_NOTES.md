@@ -20,8 +20,13 @@ Session-to-session state. Terse, mechanism-level. Read after docs/TECH_SPEC.md.
   rejected. **Committed.**
 - **Organ 3a — TrackStore** (`src/core/track_store.{hpp,cpp}` + test):
   `map_mutex_` + `unordered_map<string, shared_ptr<Track>>`, `Track{mutex;
-  RobotTelemetry latest;}`. Latest-wins BY SEQ; two-level locking. 6 gtests
-  green (§10). **UNCOMMITTED** — see below.
+  RobotTelemetry latest;}`. Latest-wins BY SEQ; two-level locking. gtests
+  green (§10). **UNCOMMITTED.**
+- **Organ 3b — LinkWatchdog** (`src/core/link_watchdog.{hpp,cpp}` + test):
+  per-robot LIVE/STALE/LOST on server monotonic receive time (passed in, not
+  robot ts, not wall clock). No timer thread — pure function of age at 5Hz
+  assembly; recovery automatic. Thresholds 1.5s/10s configurable, half-open
+  edges. 6 gtests green (§10 exact thresholds). **UNCOMMITTED.**
 
 **Gotchas banked this session (all real, all bit us):**
 - `std::numbers::pi`, NOT `M_PI` — strict `-std=c++20` hides M_PI behind
@@ -35,9 +40,6 @@ Session-to-session state. Terse, mechanism-level. Read after docs/TECH_SPEC.md.
   chrono↔`google::protobuf::Timestamp` split (seconds + nanos remainder).
 
 **NOT STARTED — backend remaining (this is where Organ 3 continues):**
-- **Organ 3b — LinkState watchdog:** per-robot, on **server receive time**
-  (monotonic clock, NOT robot timestamp), LIVE→STALE→LOST at
-  T_stale=1.5s / T_lost=10s (configurable). Where age_ms comes from.
 - **Organ 3c — CommandTracker:** §5 lifecycle PENDING→SENT→APPLIED +
   REJECTED/EXPIRED/ROBOT_OFFLINE; OperatorCommand→per-robot RobotCommand
   fan-out; terminal-state retention window (bounded SwarmState.commands).
@@ -47,15 +49,26 @@ Session-to-session state. Terse, mechanism-level. Read after docs/TECH_SPEC.md.
 - **Organs 5–7:** launch_swarm.sh; integration tests (§10); gates (ASan/UBSan,
   TSan on multi-link w/ adapted tsan.supp, CI).
 
-### >>> NEXT BACKEND ENTRY POINT: LinkState watchdog (Organ 3b) <<<
-Server stamps **monotonic receive time** on each accepted telemetry (in the
-gateway's on_telemetry_ path or TrackStore). Watchdog compares now−last_rx to
-the two thresholds. This is the input to age_ms and the roster LIVE/STALE/LOST.
-NB: robot_sim can't be *exercised* end-to-end until Organ 4 exists (nothing
-accepts its link yet) — the gateway/robot_sim are compile+unit verified only.
+### >>> NEXT BACKEND ENTRY POINT: CommandTracker (Organ 3c) <<<
+Last core organ, most intricate. §5 lifecycle per command per target:
+PENDING→SENT→APPLIED, + REJECTED/EXPIRED/ROBOT_OFFLINE. Fan-out: one
+OperatorCommand (targets[]) → N per-robot RobotCommands, each tracked.
+EXPIRED: a SENT command with no result by its deadline. ROBOT_OFFLINE: target
+already LOST at dispatch → surfaced immediately, no send. Terminal-state
+retention window so SwarmState.commands stays bounded. Deterministically
+testable like the watchdog (inject 'now').
 
-Note: Thu-pm "backend complete" slipped — watchdog/tracker/feed remain. Fri
-must either finish backend first or re-plan GUI vs backend split.
+Then Organ 4 (OperatorFeed) wires everything: Subscribe streams SwarmState @5Hz
+(TrackStore.snapshot + LinkWatchdog.classify + tracker states); SendCommand →
+validate → tracker custody → Accepted{command_id} immediately.
+
+**Wiring note (nothing calls the organs yet):** the server's on_telemetry_
+must call BOTH `TrackStore.upsert` AND `LinkWatchdog.record`; on_command_result_
+feeds CommandTracker. Gateway/robot_sim/store/watchdog are compile+unit verified
+only — not exercised end-to-end until Organ 4 exists.
+
+Note: Thu-pm "backend complete" slipped — tracker + feed remain. Fri must
+either finish backend first or re-plan GUI vs backend split.
 
 ---
 
