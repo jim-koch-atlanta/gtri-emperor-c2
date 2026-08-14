@@ -16,6 +16,23 @@ public sealed class MainViewModel : ObservableObject
     private string _StatusText = "starting…";
     public string StatusText { get => _StatusText; private set => SetField(ref _StatusText, value); }
 
+    private double _Scale = 0.6;
+    public double Scale { get => _Scale; set => SetField(ref _Scale, value); }
+
+    private double _CenterX = 300;
+    public double CenterX { get => _CenterX; set => SetField(ref _CenterX, value); }
+
+    private double _CenterY = 0;
+    public double CenterY { get => _CenterY; set => SetField(ref _CenterY, value); }
+
+    private double _VW = 800;
+    public double VW { get => _VW; set => SetField(ref _VW, value); }
+
+    private double _VH = 450;
+    public double VH { get => _VH; set => SetField(ref _VH, value); }
+
+    // The ICommand for the Fit All button.
+    public RelayCommand FitAllCommand { get; }
     public MainViewModel(IFeed feed)
     {
         _feed = feed;
@@ -23,6 +40,8 @@ public sealed class MainViewModel : ObservableObject
         // Ctor runs on the UI thread, so Application.Current.Dispatcher below is
         // the UI dispatcher. Start the reader on a background Task (idiom 1).
         _ = Task.Run(RunFeedAsync);
+
+        FitAllCommand = new RelayCommand(FitAll);
     }
 
     // ── DEFENSE-CRITICAL IDIOM 1: background-task stream reader ──────────────
@@ -96,7 +115,12 @@ public sealed class MainViewModel : ObservableObject
 
     // Unchanged seam from the spike — identity today. Scale/offset + Fit All is
     // Saturday's work; the feed hands us world X/Y and this decides pixels.
-    private (double, double) WorldToCanvas(double x, double y) => (x, y);
+    private (double, double) WorldToCanvas(double x, double y) {
+        double canvasX = (x - CenterX) * Scale + VW/2;
+        double canvasY = (CenterY - y) * Scale + VH/2;
+
+        return (canvasX, canvasY);
+    }
 
     private static string StatusLabel(LinkStatus s) => s switch
     {
@@ -105,4 +129,42 @@ public sealed class MainViewModel : ObservableObject
         LinkStatus.LinkLost => "LOST",
         _ => "?",
     };
+
+    private void FitAll()
+    {
+        if (Robots.Count == 0)
+        {
+            // Do nothing if there are no robots.
+            return;
+        }
+
+        var minX = double.MaxValue;
+        var maxX = double.MinValue;
+        var minY = double.MaxValue;
+        var maxY = double.MinValue;
+
+        foreach (var robot in Robots)
+        {
+            minX = Math.Min(minX, robot.X);
+            maxX = Math.Max(maxX, robot.X);
+            minY = Math.Min(minY, robot.Y);
+            maxY = Math.Max(maxY, robot.Y);
+        }
+
+        var worldWidth = Math.Max(maxX - minX, 1d);
+        var worldHeight = Math.Max(maxY - minY, 1d);
+
+        // 0.9 leaves some margin.
+        Scale = Math.Min(VW / worldWidth, VH / worldHeight) * 0.9d;
+
+        CenterX = (minX + maxX) / 2d;
+        CenterY = (minY + maxY) / 2d;
+
+        // Reproject to force an immediate redraw, versus waiting for the next
+        // SwarmState update.
+        foreach (var r in Robots)
+        {
+            (r.CanvasX, r.CanvasY) = WorldToCanvas(r.X, r.Y);
+        }
+    }
 }

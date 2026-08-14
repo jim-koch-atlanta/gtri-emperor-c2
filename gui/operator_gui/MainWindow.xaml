@@ -8,6 +8,8 @@
         mc:Ignorable="d"
         Title="{Binding StatusText}" Height="450" Width="800">
     <Grid>
+        <Button Content="Fit All" Command="{Binding FitAllCommand}"
+            HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Padding="10,4" />
         <ItemsControl ItemsSource="{Binding Robots}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
