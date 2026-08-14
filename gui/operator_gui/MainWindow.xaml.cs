@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using operator_gui.ViewModels;
 
 namespace operator_gui;
 
@@ -19,5 +20,14 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+    }
+
+    private void Dot_Click(object sender, MouseButtonEventArgs e) {
+        if (sender is FrameworkElement fe &&
+            fe.DataContext is RobotViewModel robot &&
+            DataContext is MainViewModel vm)
+        {
+            vm.SelectedRobot = robot;
+        }
     }
 }

@@ -12,7 +12,11 @@
             <ColumnDefinition Width="220" />    <!-- The left Roster panel -->
             <ColumnDefinition Width="*" />      <!-- The tactical region takes the rest -->
         </Grid.ColumnDefinitions>
-        <ListBox Grid.Column="0" ItemsSource="{Binding Robots}">
+        <ListBox
+            Grid.Column="0"
+            ItemsSource="{Binding Robots}"
+            SelectedItem="{Binding SelectedRobot, Mode=TwoWay}">
+
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel>
@@ -42,7 +46,11 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <StackPanel>
-                        <Ellipse Width="14" Height="14" Fill="DodgerBlue"/>
+                        <Ellipse
+                            Width="14"
+                            Height="14"
+                            Fill="DodgerBlue"
+                            MouseLeftButtonDown="Dot_Click" />
                         <TextBlock Text="{Binding Id}"/>
                     </StackPanel>
                 </DataTemplate>

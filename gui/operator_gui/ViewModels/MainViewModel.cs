@@ -31,6 +31,10 @@ public sealed class MainViewModel : ObservableObject
     private double _VH = 450;
     public double VH { get => _VH; set => SetField(ref _VH, value); }
 
+    // The robot selected on the UI.
+    private RobotViewModel? _SelectedRobot;
+    public RobotViewModel? SelectedRobot { get => _SelectedRobot; set => SetField(ref _SelectedRobot, value); }
+
     // The ICommand for the Fit All button.
     public RelayCommand FitAllCommand { get; }
     public MainViewModel(IFeed feed)
