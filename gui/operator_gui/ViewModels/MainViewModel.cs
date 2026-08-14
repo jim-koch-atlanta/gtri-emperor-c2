@@ -33,7 +33,16 @@ public sealed class MainViewModel : ObservableObject
 
     // The robot selected on the UI.
     private RobotViewModel? _SelectedRobot;
-    public RobotViewModel? SelectedRobot { get => _SelectedRobot; set => SetField(ref _SelectedRobot, value); }
+    public RobotViewModel? SelectedRobot
+    {
+        get => _SelectedRobot;
+        set
+        {
+            if (_SelectedRobot is not null) _SelectedRobot.IsSelected = false;  // clear old
+            SetField(ref _SelectedRobot, value);
+            if (_SelectedRobot is not null) _SelectedRobot.IsSelected = true;   // set new
+        }
+    }
 
     // The ICommand for the Fit All button.
     public RelayCommand FitAllCommand { get; }

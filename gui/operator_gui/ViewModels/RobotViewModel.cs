@@ -36,4 +36,8 @@ public sealed class RobotViewModel : ObservableObject
     // that displays it is Saturday's work.
     private long _Age;
     public long Age { get => _Age; set => SetField(ref _Age, value); }
+
+    // Is this specific robot selected on the UI?
+    private bool _IsSelected;
+    public bool IsSelected { get => _IsSelected; set => SetField(ref _IsSelected, value); }
 }

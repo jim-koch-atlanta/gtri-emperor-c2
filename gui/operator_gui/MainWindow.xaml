@@ -7,6 +7,9 @@
         xmlns:vm="clr-namespace:operator_gui.ViewModels"
         mc:Ignorable="d"
         Title="{Binding StatusText}" Height="450" Width="800">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="220" />    <!-- The left Roster panel -->
@@ -46,11 +49,14 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <StackPanel>
-                        <Ellipse
-                            Width="14"
-                            Height="14"
-                            Fill="DodgerBlue"
-                            MouseLeftButtonDown="Dot_Click" />
+                        <Grid Width="22" Height="22">
+                            <Ellipse
+                                Width="22" Height="22" Stroke="Yellow" StrokeThickness="2" Fill="Transparent"
+                                    Visibility="{Binding IsSelected, Converter={StaticResource BoolToVis}}"/>                            
+                            <Ellipse
+                                Width="14" Height="14" Fill="DodgerBlue"
+                                MouseLeftButtonDown="Dot_Click" />
+                        </Grid>
                         <TextBlock Text="{Binding Id}"/>
                     </StackPanel>
                 </DataTemplate>
