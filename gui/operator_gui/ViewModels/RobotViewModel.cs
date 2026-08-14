@@ -2,8 +2,11 @@ namespace operator_gui.ViewModels;
 
 public sealed class RobotViewModel : ObservableObject
 {
-    private String _Id;
-    public String Id { get => _Id; set => SetField(ref _Id, value); }
+    public RobotViewModel(string id) => Id = id;
+
+    // Set once at construction → get-only auto-property (never notifies, and
+    // satisfies the nullable analyzer, unlike a SetField field the ctor fills).
+    public string Id { get; }
 
     private double _X;
     public double X { get => _X; set => SetField(ref _X, value); }
@@ -20,12 +23,11 @@ public sealed class RobotViewModel : ObservableObject
     private double _Heading;
     public double Heading { get => _Heading; set => SetField(ref _Heading, value); }
 
-    private String _Status;
-    public String Status { get => _Status; set => SetField(ref _Status, value); }
+    private string _Status = "PENDING";
+    public string Status { get => _Status; set => SetField(ref _Status, value); }
 
-    public RobotViewModel(String id)
-    {
-        Id = id;
-        Status = "PENDING";
-    }
+    // Telemetry age from the server's RobotState (ms). Plumbed now; the roster
+    // that displays it is Saturday's work.
+    private long _Age;
+    public long Age { get => _Age; set => SetField(ref _Age, value); }
 }

@@ -6,10 +6,7 @@
         xmlns:local="clr-namespace:operator_gui"
         xmlns:vm="clr-namespace:operator_gui.ViewModels"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Window.DataContext>
-        <vm:MainViewModel/>
-    </Window.DataContext>
+        Title="{Binding StatusText}" Height="450" Width="800">
     <Grid>
         <ItemsControl ItemsSource="{Binding Robots}">
             <ItemsControl.ItemsPanel>

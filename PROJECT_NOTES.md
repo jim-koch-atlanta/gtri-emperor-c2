@@ -93,6 +93,48 @@ either finish backend first or re-plan GUI vs backend split.
 
 ---
 
+## GUI — GrpcFeed feed seam DONE (Fri 2026-08-14, ~30 min micro-session)
+
+**Built (build green 0/0, warning-clean; FakeFeed path verified running;
+GrpcFeed path awaits the live milestone run below):**
+- `Feed/IFeed.cs` — the seam: `IAsyncEnumerable<Emperor.SwarmState> Subscribe(ct)`.
+  Both feeds yield the SAME generated `SwarmState` currency; feed choice changes
+  nothing downstream.
+- `Feed/FakeFeed.cs` — Thursday's 6-circle motion, now emitted as SwarmState
+  frames @ ~10 Hz. Default; app runs standalone with no server.
+- `Feed/GrpcFeed.cs` — GrpcChannel → `http://localhost:50051`,
+  `OperatorFeed.Subscribe` → `ReadAllAsync`. h2c switch set in a static ctor
+  (gotcha #7). Server must bind `0.0.0.0` (it does).
+- `MainViewModel` — **idiom 1** background-task stream reader + **idiom 2**
+  `Dispatcher.InvokeAsync` marshal (both commented for the ownership review;
+  marshal justified in-comment: feed layer stays WPF-free, marshal lives in the
+  WPF-aware VM). Upsert-by-robot_id; position via `WorldToCanvas` (identity,
+  unchanged); Status + Age from RobotState. Stream end/error → StatusText, no
+  crash. StatusText bound to window Title.
+- `App.OnStartup` injects the feed (`--grpc` arg | `EMPEROR_FEED=grpc` | default
+  Fake). Removed XAML `<Window.DataContext>` — the DI seam is the point.
+- `RobotViewModel` — added `Age`; fixed the 2 CS8618 warnings (Id get-only,
+  `_Status` defaulted). Build is now warning-clean.
+
+**MILESTONE (Jim runs, live):** `tools/launch_swarm.sh 3` in WSL, then
+`operator_gui.exe --grpc` on Windows → real C++ robots stream into the window.
+Expect dots near the TOP (centers at world y=0 = window top; identity transform;
+top halves clipped). Framing is Saturday's Fit All — milestone = real data
+flowing, which moving dots prove.
+
+### >>> SATURDAY ENTRY POINT (GUI) <<<
+1. **Ownership review of GrpcFeed** — the two idiom comments are written for this
+   reader; read them aloud, make sure you can defend the thread story.
+2. **Gates-lite (~20 min):** warning-clean (done); run under both feeds; confirm
+   graceful stream-end (kill the server → Title shows "feed error…", no crash).
+3. **Centerpiece §5:** command panel + status strip (SendCommand → per-target
+   PENDING→SENT→APPLIED, circle-widen). The question's centerpiece.
+- **send_command_probe STILL OWED** — backend routes SendCommand through the
+  tracker but nothing *sends* yet; needed for §10 integration AND the GUI cmd path.
+- Real `WorldToCanvas` (scale+offset+Fit All) so robots are framed, not top-clipped.
+
+---
+
 ## Status board (as of Wed 2026-08-12, skeleton session)
 
 **GREEN (validated locally):**
