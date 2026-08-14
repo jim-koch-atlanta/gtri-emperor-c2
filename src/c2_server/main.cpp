@@ -1,6 +1,4 @@
-// c2_server — skeleton entry point. Real organs (track store, command tracker,
-// link watchdog, operator feed) land Thu pm per TECH_SPEC §12. This main only
-// proves the target links the generated proto lib.
+// c2_server — The C2 server entry point.
 #include <iostream>
 
 #include "robot.pb.h"
@@ -24,9 +22,22 @@ int main()
   // Command tracker keeps track of each command's state.
   c2::CommandTracker tracker;
 
+  // When a telemetry message is received from a robot, update our track store
+  // and mark the robot alive in the link watchdog.
+  auto on_telemetry_ = [&](c2::RobotTelemetry t) {
+    store.upsert(t);
+    watchdog.record(t.robot_id, std::chrono::steady_clock::now());
+  };
+
+  // When a CommandResult message is received from a robot, update the command
+  // status in our command tracker.
+  auto on_command_result_ = [&](c2::CommandResult r){
+    tracker.onCommandResult(r, std::chrono::system_clock::now());
+  };
+
   // GrpcRobotGateway is the translation between gRPC objects and our internal objects,
   // so that our business logic is transport-layer agnostic.
-  c2::GrpcRobotGateway gateway([](c2::RobotTelemetry t) {}, [](c2::CommandResult) {});
+  c2::GrpcRobotGateway gateway(on_telemetry_, on_command_result_);
 
   // Operator feed handles coneections from C2 clients (the GUI).
   c2::OperatorFeedService feed(store, watchdog, tracker, gateway);
