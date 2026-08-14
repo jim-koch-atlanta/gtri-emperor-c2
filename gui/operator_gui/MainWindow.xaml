@@ -8,9 +8,26 @@
         mc:Ignorable="d"
         Title="{Binding StatusText}" Height="450" Width="800">
     <Grid>
-        <Button Content="Fit All" Command="{Binding FitAllCommand}"
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />    <!-- The left Roster panel -->
+            <ColumnDefinition Width="*" />      <!-- The tactical region takes the rest -->
+        </Grid.ColumnDefinitions>
+        <ListBox Grid.Column="0" ItemsSource="{Binding Robots}">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel>
+                        <TextBlock Text="{Binding Id}"/>
+                        <TextBlock Text="{Binding Status}"/>
+                        <TextBlock Text="{Binding Age}"/>
+                        <TextBlock Text="{Binding Speed}"/>
+                        <TextBlock Text="{Binding Radius}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <Button Grid.Column="1" Content="Fit All" Command="{Binding FitAllCommand}"
             HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Padding="10,4" />
-        <ItemsControl ItemsSource="{Binding Robots}">
+        <ItemsControl Grid.Column="1" ItemsSource="{Binding Robots}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <Canvas/>

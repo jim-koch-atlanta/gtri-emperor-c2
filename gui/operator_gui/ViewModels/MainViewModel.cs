@@ -106,6 +106,8 @@ public sealed class MainViewModel : ObservableObject
             vm.Y = tel.Y;
             (vm.CanvasX, vm.CanvasY) = WorldToCanvas(vm.X, vm.Y);
             vm.Heading = tel.Heading;
+            vm.Speed = tel.Speed;
+            vm.Radius = tel.Radius;
             vm.Status = StatusLabel(rs.LinkStatus);
             vm.Age = rs.AgeMs;
         }

@@ -23,6 +23,12 @@ public sealed class RobotViewModel : ObservableObject
     private double _Heading;
     public double Heading { get => _Heading; set => SetField(ref _Heading, value); }
 
+    private double _Speed;
+    public double Speed { get => _Speed; set => SetField(ref _Speed, value); }
+
+    private double _Radius;
+    public double Radius { get => _Radius; set => SetField(ref _Radius, value); }
+
     private string _Status = "PENDING";
     public string Status { get => _Status; set => SetField(ref _Status, value); }
 
