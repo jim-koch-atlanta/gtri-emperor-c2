@@ -9,6 +9,7 @@
         Title="{Binding StatusText}" Height="450" Width="800">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <local:StatusToBrushConverter x:Key="StatusToBrush"/>
     </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -23,6 +24,8 @@
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel>
+                        <Ellipse Width="10" Height="10"
+                            Fill="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
                         <TextBlock Text="{Binding Id}"/>
                         <TextBlock Text="{Binding Status}"/>
                         <TextBlock Text="{Binding Age}"/>
