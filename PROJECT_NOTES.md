@@ -49,29 +49,41 @@ Session-to-session state. Terse, mechanism-level. Read after docs/TECH_SPEC.md.
 - **Organs 5–7:** launch_swarm.sh; integration tests (§10); gates (ASan/UBSan,
   TSan on multi-link w/ adapted tsan.supp, CI).
 
-### >>> NEXT BACKEND ENTRY POINT: OperatorFeed + server glue (Organ 4) <<<
-All four core organs are DONE and unit-tested (18 gtests). Organ 4 is the glue
-that finally wires + exercises them end-to-end — first real run of the whole
-backend.
+### >>> DONE Fri 2026-08-14 am: Organs 4 (OperatorFeed) + 5 (launch_swarm) <<<
+**Backend is END-TO-END LIVE and smoke-verified.** server + N robot_sims →
+SwarmState streaming @5Hz to a subscriber: robots LINK_LIVE, positions orbiting,
+age_ms ~70ms, seq monotonic. Verified via `tools/subscribe_probe`.
 
-Two gRPC services on the server:
-- **Subscribe(SubscribeRequest) -> stream SwarmState @5Hz.** Each tick: run
-  `CommandTracker.sweepExpired(now)`, then assemble from `TrackStore.snapshot()`
-  + `LinkWatchdog.classify(id, now)` per robot + `CommandTracker.snapshot()`.
-  Translate domain→proto (c2::LinkStatus→emperor::LinkStatus, CommandState→proto,
-  chrono→Timestamp). seq monotonic per broadcast.
-- **SendCommand(OperatorCommand) -> Accepted.** Validate; `tracker.onCommandSubmitted(
-  cmd, is_offline, now)` where `is_offline = [&](id){ return watchdog.classify(
-  id,now).status==LOST; }`; dispatch the returned RobotCommands via
-  `gateway.SendCommand`, calling `tracker.onCommandSent` on each; return
-  Accepted{command_id} immediately (custody ≠ delivery).
+- **Organ 4 — OperatorFeed** (`src/c2_server/operator_feed_service.{hpp,cpp}` +
+  `main.cpp`): Subscribe = 5Hz loop (sweepExpired → store.snapshot +
+  watchdog.classify per robot + tracker.snapshot → domain→proto → Write; break on
+  Write()==false, per-subscriber seq). SendCommand routes THROUGH
+  `tracker.onCommandSubmitted` (fan-out + ROBOT_OFFLINE) → dispatch via gateway →
+  onCommandSent (custody ≠ delivery). main.cpp hosts BOTH services on one
+  ServerBuilder @ 0.0.0.0:50051; callbacks on_telemetry_ = upsert +
+  watchdog.record(steady), on_command_result_ = tracker.onCommandResult(system).
+  **Committed.**
+- **Organ 5 — launch_swarm.sh** (`tools/`): builds, launches server + N robots
+  (varied params), health-checks via subscribe_probe, then `wait`s until Ctrl-C →
+  trap teardown. **UNCOMMITTED (tools/).**
+- **GUI merged** from gui-spike-jim (source only; obj/ gitignored; README kept).
 
-**Server wiring (the callbacks the gateway needs):**
-- on_telemetry_  = `[&](RobotTelemetry t){ store.upsert(t); watchdog.record(t.robot_id, steady_now()); }`
-- on_command_result_ = `[&](CommandResult r){ tracker.onCommandResult(r, sys_now()); }`
+**NOT smoke-tested e2e:** the command path (SendCommand → PENDING→SENT→APPLIED +
+circle-widen). Unit-tested (CommandTracker's 6 gtests) and SendCommand routes
+through the tracker, but nothing *sends* a command yet — that's the GUI's job.
 
-Then Organ 5 (launch_swarm.sh) + Organ 6 (integration tests, §10) can actually
-run — robot_sim gets exercised for the first time here.
+### >>> NEXT ENTRY POINT: Organ 6 (integration tests §10) + Organ 7 (gates) <<<
+- **Organ 6 — integration tests (§10, headless):** 3 LIVE; SIGSTOP→STALE→LOST→
+  CONT; 2-target SetParameters→both APPLIED; STALE-robot cmd→EXPIRED; LOST-robot
+  cmd→ROBOT_OFFLINE. Orchestrate like launch_swarm; assert on subscribe_probe
+  output (or a gtest harness that spawns server + robots + a SendCommand caller).
+- **Organ 7 — gates:** ASan/UBSan on the suite; **TSan on the multi-link server
+  paths** (adapt tsan.supp from atas-prep — grpc/absl/event_engine suppressions);
+  confirm CI stays green (emperor_c2_server + subscribe_probe now build in CI).
+
+**DRY debt:** chrono↔proto-Timestamp conversion lives in 3 places now (gateway,
+robot_sim, operator_feed). Lift to an inline `core/time_util.hpp` when convenient
+(flagged in the operator_feed comment).
 
 NB clock split: watchdog uses steady_clock (monotonic); CommandTracker + event
 timestamps use system_clock. Don't cross them.
