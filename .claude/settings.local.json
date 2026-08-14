@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(./src/robot_sim)",
-      "Bash(./src/c2_server)"
-    ]
-  }
-}

@@ -1,0 +1,5 @@
+# .NET / WPF build output (Windows-side operator_gui)
+[Bb]in/
+[Oo]bj/
+*.user
+.vs/
