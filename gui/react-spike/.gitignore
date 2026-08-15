@@ -1,0 +1,5 @@
+# THROWAWAY exploration — build output & deps are not committed.
+node_modules/
+dist/
+.vite/
+*.log
