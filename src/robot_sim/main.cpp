@@ -103,6 +103,16 @@ bool applyParams(MotionState& m, const emperor::SetParameters& sp) {
   // motion model (NaN position). Surfaces to the operator as REJECTED (§5).
   if (sp.has_radius() && sp.radius() <= 0.0) { return false; }
 
+  // If radius or velocity changes, but theta did not change, we make sure the
+  // robot doesn't "jump" / "teleport".
+  if ((sp.has_radius() || sp.has_speed()) && !sp.has_theta()) {
+    auto now = std::chrono::steady_clock::now();
+    double t = std::chrono::duration<double>(now - m.start).count();
+    double phi = m.speed / m.radius * t + m.theta0;
+    m.start = now;
+    m.theta0 = phi;
+  }
+
   if (sp.has_center_x()) { m.cx = sp.center_x(); }
   if (sp.has_center_y()) { m.cy = sp.center_y(); }
   if (sp.has_radius()) { m.radius = sp.radius(); }
