@@ -27,6 +27,21 @@
             <RowDefinition Height="140"/>    <!-- command status bar -->
             <RowDefinition Height="Auto"/>   <!-- status bar sizes to content -->
         </Grid.RowDefinitions>
+
+        <!-- subtle tactical grid (behind trails/dots; never intercepts clicks) -->
+        <Rectangle Grid.Column="1" Grid.Row="0" IsHitTestVisible="False">
+            <Rectangle.Fill>
+                <DrawingBrush TileMode="Tile" Viewport="0,0,40,40" ViewportUnits="Absolute"
+                              Viewbox="0,0,40,40" ViewboxUnits="Absolute">
+                    <DrawingBrush.Drawing>
+                        <GeometryDrawing Geometry="M0,0 L40,0 M0,0 L0,40">
+                            <GeometryDrawing.Pen><Pen Brush="#182029" Thickness="1"/></GeometryDrawing.Pen>
+                        </GeometryDrawing>
+                    </DrawingBrush.Drawing>
+                </DrawingBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
         <ListBox
             Grid.Column="0"
             Grid.Row="0"
@@ -181,7 +196,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Polyline Points="{Binding Trail}" Stroke="DodgerBlue" StrokeThickness="1" Opacity="0.4"/>
+                    <Polyline Points="{Binding Trail}" Stroke="{StaticResource Brush.Accent}" StrokeThickness="1.5" Opacity="0.35"/>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -201,14 +216,24 @@
                 <DataTemplate>
                     <StackPanel>
                         <Grid Width="22" Height="22">
-                            <Ellipse
-                                Width="22" Height="22" Stroke="Yellow" StrokeThickness="2" Fill="Transparent"
-                                    Visibility="{Binding IsSelected, Converter={StaticResource BoolToVis}}"/>                            
-                            <Ellipse
-                                Width="14" Height="14" Fill="DodgerBlue"
-                                MouseLeftButtonDown="Dot_Click" />
+                            <Ellipse Width="22" Height="22" Stroke="{StaticResource Brush.Text}" StrokeThickness="2"
+                                     Fill="Transparent"
+                                     Visibility="{Binding IsSelected, Converter={StaticResource BoolToVis}}">
+                                <Ellipse.Effect>
+                                    <DropShadowEffect Color="#e6edf3" BlurRadius="8" ShadowDepth="0" Opacity="0.7"/>
+                                </Ellipse.Effect>
+                            </Ellipse>
+                            <Ellipse Width="14" Height="14"
+                                     Fill="{StaticResource Brush.Accent}"
+                                     Stroke="{StaticResource Brush.Bg}" StrokeThickness="2"
+                                     MouseLeftButtonDown="Dot_Click" />
                         </Grid>
-                        <TextBlock Text="{Binding Id}"/>
+                        <TextBlock Text="{Binding Id}" FontFamily="Consolas" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{StaticResource Brush.Text}" HorizontalAlignment="Center" Margin="0,1,0,0">
+                            <TextBlock.Effect>
+                                <DropShadowEffect Color="#0d1117" BlurRadius="3" ShadowDepth="0"/>
+                            </TextBlock.Effect>
+                        </TextBlock>
                     </StackPanel>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
