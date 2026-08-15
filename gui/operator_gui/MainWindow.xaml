@@ -39,21 +39,69 @@
             <!-- Allow selection on the canvas to result in selection on the Robot Roster panel -->
             <ListBox.ItemContainerStyle>
                 <Style TargetType="ListBoxItem">
+                    <!-- selection binding — UNCHANGED (drives roster<->canvas sync) -->
                     <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="Foreground" Value="{StaticResource Brush.Text}"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <Border x:Name="bd" Background="Transparent"
+                                        BorderThickness="3,0,0,0" BorderBrush="Transparent">
+                                    <ContentPresenter/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.Panel2}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="bd" Property="Background" Value="#1F2937"/>
+                                        <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Brush.Accent}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
                 </Style>
             </ListBox.ItemContainerStyle>
 
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <StackPanel>
-                        <Ellipse Width="10" Height="10"
-                            Fill="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
-                        <TextBlock Text="{Binding Id}"/>
-                        <TextBlock Text="{Binding Status}"/>
-                        <TextBlock Text="{Binding Age}"/>
-                        <TextBlock Text="{Binding Speed}"/>
-                        <TextBlock Text="{Binding Radius}"/>
-                    </StackPanel>
+                    <Grid Margin="12,7">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="52"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Ellipse Grid.Column="0" Grid.Row="0" Grid.RowSpan="2"
+                                 Width="10" Height="10" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                 Fill="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
+
+                        <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding Id}"
+                                   FontFamily="Consolas" FontWeight="SemiBold" VerticalAlignment="Center"/>
+
+                        <TextBlock Grid.Column="2" Grid.Row="0" Text="{Binding Status}"
+                                   FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"
+                                   Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
+
+                        <TextBlock Grid.Column="3" Grid.Row="0" Text="{Binding Age, StringFormat='{}{0} ms'}"
+                                   FontSize="11" Foreground="{StaticResource Brush.Muted}"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
+
+                        <StackPanel Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="1"
+                                    Orientation="Horizontal" Margin="0,2,0,0">
+                            <TextBlock Text="{Binding Speed,  StringFormat='V {0:0.#}'}"
+                                       FontSize="11" Foreground="{StaticResource Brush.Muted}"/>
+                            <TextBlock Text="{Binding Radius, StringFormat='R {0:0.#}'}"
+                                       FontSize="11" Foreground="{StaticResource Brush.Muted}" Margin="10,0,0,0"/>
+                        </StackPanel>
+                    </Grid>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
