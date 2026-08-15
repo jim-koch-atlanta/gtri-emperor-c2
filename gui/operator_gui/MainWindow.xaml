@@ -111,37 +111,51 @@
             Content="Fit All" Command="{Binding FitAllCommand}"
             HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Padding="10,4" />
 
-        <ScrollViewer Grid.Row="1" Grid.ColumnSpan="3" VerticalScrollBarVisibility="Auto" Background="#151515">
-            <ItemsControl ItemsSource="{Binding Commands}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <!-- One Command row -->
-                        <StackPanel Orientation="Horizontal" Margin="6,3">
-                            <TextBlock Text="{Binding ShortId}" Foreground="#aaa" Width="72" FontFamily="Consolas"/>
+        <Border Grid.Row="1" Grid.ColumnSpan="3"
+                Background="{StaticResource Brush.Panel}"
+                BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,1,0,0">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="COMMAND STATUS"
+                           Style="{StaticResource PanelTitle}" Margin="12,8,0,2"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Commands}" Margin="0,0,0,6">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <!-- One Command row -->
+                                <StackPanel Orientation="Horizontal" Margin="12,3">
+                                    <TextBlock Text="{Binding ShortId}" Foreground="{StaticResource Brush.Muted}"
+                                               Width="150" FontFamily="Consolas" FontSize="11" VerticalAlignment="Center"/>
 
-                            <!-- For each command, the per-Target chips -->
-                            <ItemsControl ItemsSource="{Binding Targets}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <!-- One Chip, colored by state -->
-                                        <Border CornerRadius="3" Margin="2,0" Padding="5,1"
-                                                Background="{Binding State, Converter={StaticResource CmdStateToBrush}}">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding RobotId}" Foreground="White" FontSize="11"/>
-                                                <TextBlock Text="{Binding State}"   Foreground="White" FontSize="11" Margin="4,0,0,0"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+                                    <!-- per-target chips (rounded, outlined + text colored by state) -->
+                                    <ItemsControl ItemsSource="{Binding Targets}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border CornerRadius="9" Margin="3,1" Padding="7,1"
+                                                        Background="{StaticResource Brush.Panel2}"
+                                                        BorderThickness="1"
+                                                        BorderBrush="{Binding State, Converter={StaticResource CmdStateToBrush}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding RobotId}" FontFamily="Consolas"
+                                                                   FontSize="11" FontWeight="SemiBold"
+                                                                   Foreground="{Binding State, Converter={StaticResource CmdStateToBrush}}"/>
+                                                        <TextBlock Text="{Binding State}" FontFamily="Consolas"
+                                                                   FontSize="11" FontWeight="SemiBold" Margin="5,0,0,0"
+                                                                   Foreground="{Binding State, Converter={StaticResource CmdStateToBrush}}"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
 
         <!-- Robot Status Count bar -->
         <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Orientation="Horizontal" Background="#222">
