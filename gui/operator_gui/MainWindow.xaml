@@ -123,8 +123,9 @@
         <Button
             Grid.Column="1"
             Grid.Row="0"
+            Style="{StaticResource GhostButton}"
             Content="Fit All" Command="{Binding FitAllCommand}"
-            HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Padding="10,4" />
+            HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" />
 
         <Border Grid.Row="1" Grid.ColumnSpan="3"
                 Background="{StaticResource Brush.Panel}"
