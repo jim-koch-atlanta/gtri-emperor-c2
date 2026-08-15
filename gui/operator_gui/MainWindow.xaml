@@ -6,7 +6,11 @@
         xmlns:local="clr-namespace:operator_gui"
         xmlns:vm="clr-namespace:operator_gui.ViewModels"
         mc:Ignorable="d"
-        Title="{Binding StatusText}" Height="450" Width="800">
+        Title="{Binding StatusText}" Height="450" Width="800"
+        Background="{StaticResource Brush.Bg}"
+        Foreground="{StaticResource Brush.Text}"
+        FontFamily="Segoe UI" FontSize="13"
+        TextOptions.TextFormattingMode="Display">
     <Window.Resources>
         <BooleanToVisibilityConverter   x:Key="BoolToVis"/>
         <local:StatusToBrushConverter   x:Key="StatusToBrush"/>
@@ -27,7 +31,10 @@
             Grid.Column="0"
             Grid.Row="0"
             ItemsSource="{Binding Robots}"
-            SelectionMode="Extended">
+            SelectionMode="Extended"
+            Background="{StaticResource Brush.Panel}"
+            BorderThickness="0"
+            Foreground="{StaticResource Brush.Text}">
 
             <!-- Allow selection on the canvas to result in selection on the Robot Roster panel -->
             <ListBox.ItemContainerStyle>

@@ -1,7 +1,19 @@
-﻿<Application x:Class="operator_gui.App"
+<Application x:Class="operator_gui.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:operator_gui">
     <!-- No StartupUri: App.OnStartup builds the window so it can inject the feed. -->
-    <Application.Resources />
+    <Application.Resources>
+        <!-- ===== react-spike dark tactical palette (GitHub-dark) ===== -->
+        <SolidColorBrush x:Key="Brush.Bg"     Color="#0d1117"/>
+        <SolidColorBrush x:Key="Brush.Panel"  Color="#161b22"/>
+        <SolidColorBrush x:Key="Brush.Panel2" Color="#10151c"/>
+        <SolidColorBrush x:Key="Brush.Border" Color="#30363d"/>
+        <SolidColorBrush x:Key="Brush.Text"   Color="#e6edf3"/>
+        <SolidColorBrush x:Key="Brush.Muted"  Color="#8b949e"/>
+        <SolidColorBrush x:Key="Brush.Accent" Color="#58a6ff"/>
+        <SolidColorBrush x:Key="Brush.Live"   Color="#3fb950"/>
+        <SolidColorBrush x:Key="Brush.Stale"  Color="#d29922"/>
+        <SolidColorBrush x:Key="Brush.Lost"   Color="#f85149"/>
+    </Application.Resources>
 </Application>
