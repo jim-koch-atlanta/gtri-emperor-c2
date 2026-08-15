@@ -57,15 +57,18 @@ export class FakeSource implements Source {
   private commandSeq = 0;
 
   constructor() {
-    // 5 live orbiters + 1 frozen (STALE) robot, spread across ~1.5 km of local
-    // E/N so the McMurdo anchoring is visible on the map.
+    // 5 live orbiters + 1 frozen (STALE) robot, positioned to sit INSIDE the
+    // mission fence fixture (fixtures/mcmurdo_mission.txt): launch circle, ingress
+    // corridor, and ROI buffer, all in local E/N metres from the McMurdo anchor.
+    // R-03 orbits inside the ROI and is the geofence-breach demo robot — bump its
+    // radius large and its orbit clears the whole fence (see MORNING_REPORT beat).
     this.robots = [
-      { id: "R-01", cx: 0, cy: 0, R: 120, V: 14, theta0: 0.0, frozen: false },
-      { id: "R-02", cx: 300, cy: 120, R: 90, V: 11, theta0: 1.1, frozen: false },
-      { id: "R-03", cx: 600, cy: -80, R: 140, V: 16, theta0: 2.2, frozen: false },
-      { id: "R-04", cx: 150, cy: 350, R: 100, V: 12, theta0: 3.3, frozen: false },
-      { id: "R-05", cx: 480, cy: 300, R: 80, V: 9, theta0: 4.4, frozen: false },
-      { id: "R-06", cx: 750, cy: 180, R: 110, V: 13, theta0: 5.5, frozen: true },
+      { id: "R-01", cx: 0, cy: 0, R: 80, V: 14, theta0: 0.0, frozen: false }, // launch
+      { id: "R-02", cx: 300, cy: 250, R: 60, V: 11, theta0: 1.1, frozen: false }, // corridor
+      { id: "R-03", cx: 700, cy: 600, R: 95, V: 16, theta0: 2.2, frozen: false }, // ROI (breach demo)
+      { id: "R-04", cx: 500, cy: 420, R: 70, V: 12, theta0: 3.3, frozen: false }, // corridor→ROI
+      { id: "R-05", cx: 760, cy: 560, R: 65, V: 9, theta0: 4.4, frozen: false }, // ROI
+      { id: "R-06", cx: 140, cy: 90, R: 70, V: 13, theta0: 5.5, frozen: true }, // launch (STALE)
     ];
   }
 

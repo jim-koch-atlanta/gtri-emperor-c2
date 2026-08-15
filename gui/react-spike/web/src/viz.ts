@@ -26,3 +26,21 @@ export const CMD_COLOR: Record<CommandState, string> = {
 
 export const shortStatus = (s: LinkStatus) => s.replace("LINK_", "");
 export const shortCmd = (s: CommandState) => s.replace("CMD_", "");
+
+// Mission geometry palette. Union fence in cyan (distinct from the green/amber/red
+// status colors); component buffers tinted by role.
+export const FENCE_UNION_COLOR = "#39c5cf";
+export const INPUT_COLOR = "#c9d1d9";
+export const BUFFER_COLOR: Record<string, string> = {
+  fence_launch_point: "#3b82f6",
+  fence_ingress_route: "#14b8a6",
+  fence_region_of_interest: "#a855f7",
+};
+
+// Alert severity palette (Feature 2).
+export type Severity = "info" | "warn" | "critical";
+export const SEVERITY_COLOR: Record<Severity, string> = {
+  info: "#58a6ff",
+  warn: "#d29922",
+  critical: "#f85149",
+};

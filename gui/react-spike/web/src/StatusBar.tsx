@@ -13,11 +13,12 @@ interface Props {
   robots: RobotState[];
   status: SwarmStatus;
   basemap: "osm" | "dark";
+  unackedCount: number;
   onToggleBasemap: () => void;
   onFitAll: () => void;
 }
 
-export function StatusBar({ robots, status, basemap, onToggleBasemap, onFitAll }: Props) {
+export function StatusBar({ robots, status, basemap, unackedCount, onToggleBasemap, onFitAll }: Props) {
   const live = robots.filter((r) => r.link_status === "LINK_LIVE").length;
   const stale = robots.filter((r) => r.link_status === "LINK_STALE").length;
   const lost = robots.filter((r) => r.link_status === "LINK_LOST").length;
@@ -37,6 +38,11 @@ export function StatusBar({ robots, status, basemap, onToggleBasemap, onFitAll }
         <span style={{ color: STATUS_COLOR.LINK_STALE }}>{stale} STALE</span>
         <span style={{ color: STATUS_COLOR.LINK_LOST }}>{lost} LOST</span>
       </div>
+      {unackedCount > 0 && (
+        <div className="alarm" title={`${unackedCount} unacknowledged alert(s)`}>
+          <span className="alarm-badge">{unackedCount}</span> ALERTS
+        </div>
+      )}
       <div className="right">
         <button className="ghost" onClick={onFitAll}>Fit All</button>
         <button className="ghost" onClick={onToggleBasemap}>Basemap: {basemap === "osm" ? "OSM" : "Dark"}</button>

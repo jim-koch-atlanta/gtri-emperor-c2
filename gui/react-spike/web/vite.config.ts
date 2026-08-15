@@ -11,6 +11,8 @@ export default defineConfig({
     // WSL2, so Vite's watcher misses edits and serves stale transforms. Polling is
     // the standard fix for a project mounted on the Windows filesystem.
     watch: { usePolling: true, interval: 200 },
+    // Allow importing the mission fixtures from the sibling ../fixtures dir.
+    fs: { allow: [".."] },
   },
 });
 

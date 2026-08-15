@@ -7,7 +7,14 @@
 > interview deliverable. The submission is the C++ core + the WPF `operator_gui`.
 > Purpose: (a) prove `OperatorFeed` is client-platform-independent by attaching a
 > second, totally different client; (b) explore a MapLibre map layer (§9 stretch
-> #2); (c) leave Jim teaching material on the browser/gRPC boundary.
+> #2), now with a **mission geometry layer** and **attention/alerting** (§9
+> supervision-by-exception); (c) leave Jim teaching material on the browser/gRPC
+> boundary.
+>
+> **Session 2 (Sat 2026-08-15) added two features:** a mission geometry / geofence
+> layer (fixtures in Q1's schema + MapLibre rendering + layer toggles) and a
+> client-side AlertEngine with an alert feed (link loss, command failures, and
+> **geofence breach**). Both are covered below.
 
 ---
 
@@ -23,13 +30,16 @@ That is the whole point of TECH_SPEC §9's *client-platform independence*: the
 operator API boundary (`SwarmState` stream + `SendCommand`) is UI-framework-neutral
 by construction, and here's a second framework proving it.
 
-Three screenshots (in `screenshots/`), all captured headless from this session:
+Screenshots (in `screenshots/`), all captured headless from this machine:
 
 | file | what it shows |
 |---|---|
-| `swarm-overview.png` | Fake simulator: 6 robots on the McMurdo basemap (5 LIVE green, 1 STALE amber), roster, status counts, auto-fit. |
-| `command-lifecycle.png` | A multi-target command in the status strip: `R-01 APPLIED · R-02 APPLIED · R-06 ROBOT_OFFLINE`, with the roster showing R-01/R-02's radius changed to 250. |
-| `real-server.png` | The browser driving the **real C++ server** — note "LIVE · GRPC" top-right — 3 real `robot_sim` processes streaming live. |
+| `feature1-mission.png` | **Mission layer:** the geofence (cyan union outline), component buffers (launch circle, ingress corridor, ROI buffer), dashed mission inputs, layer toggles — the swarm orbiting inside the fence, on the dark tactical basemap. |
+| `feature2-breach.png` | **Geofence breach:** R-03 commanded outside the fence — its dot flashes red, the top bar shows `1 ALERTS`, and the alert feed reads `R-03 outside the geofence · CRITICAL` with an ACK button. |
+| `feature2-nominal.png` | The full three-column layout with the alert feed idle (`no alerts — swarm nominal`). |
+| `swarm-overview.png` | Session 1 — 6 robots on the **OSM McMurdo** basemap (5 LIVE, 1 STALE), roster, counts. |
+| `command-lifecycle.png` | Session 1 — a multi-target command in the status strip: `R-01 APPLIED · R-02 APPLIED · R-06 ROBOT_OFFLINE`. |
+| `real-server.png` | Session 1 — the browser driving the **real C++ server** ("LIVE · GRPC"), 3 real `robot_sim` processes. |
 
 ---
 
@@ -51,11 +61,12 @@ robot_sim ×N ──gRPC──> c2_server ──gRPC(OperatorFeed)──> [ brid
   mode**: a self-contained swarm simulator (same planar-metres circular-motion
   model) so the entire UI is demoable with no C++ server at all.
 
-- **`web/`** (Vite + React 18 + TypeScript + MapLibre GL JS). One data seam
-  (`useSwarm` hook: a WebSocket → latest frame + trails + `sendCommand`), and the
-  whole UI is a pure function of the `SwarmState` frames. MapLibre renders a
-  desaturated OpenStreetMap basemap of McMurdo; robots are DOM markers, trails and
-  heading ticks are GeoJSON line layers.
+- **`web/`** (Vite + React 18 + TypeScript + MapLibre GL JS + turf). Two seams:
+  `useSwarm` (WebSocket → latest frame + trails + `sendCommand`) and `useAlerts`
+  (frames → AlertEngine → alerts). The whole UI is a pure function of the
+  `SwarmState` frames plus the static mission fixture. MapLibre renders the mission
+  geometry + robots (DOM markers) + trails/heading (GeoJSON lines) over a **dark
+  tactical basemap by default**, with an OSM-McMurdo basemap one toggle away.
 
 ### World anchor — why McMurdo, not the Pole
 
@@ -67,6 +78,73 @@ Mercator's y → ∞ there, tiles clamp, geometry folds. (This is the geojson.io
 from Q1, and it's a feature to call out in the defense, not a bug to hide.) At
 −77.85° everything projects cleanly; a local-tangent metres→lon/lat approximation
 is exact to centimetres over the ~1.5 km the swarm spans.
+
+---
+
+## Feature 1 — Mission geometry layer
+
+A plausible mission and its geofence, rendered under the swarm.
+
+- **`fixtures/mcmurdo_mission.txt`** — a mission in **Q1's exact input format**
+  (JSON with hemisphere-suffixed lat/lon strings — `launchPoint`, `ingressRoute[3]`,
+  `regionOfInterest[5]`), placed at McMurdo: a launch point, a 3-vertex ingress
+  route, and a 5-vertex ROI pentagon a few hundred metres away, the whole thing
+  ~1.3 km across (inside the robots' frame).
+- **`fixtures/mcmurdo_fence.geojson`** — a hand-approximated fence in **Q1's exact
+  output schema** (`FeatureCollection` + `aeqd_center`; features carry
+  `{name, role}` with roles `input` / `fence`, union named `fence` — matching
+  `gtri-penguin-fence`'s `geojson.cpp`). Launch circle ~200 m, ingress corridor
+  ~100 m, ROI buffer ~250 m, unioned. **PLACEHOLDER** (see its `_note`): generated
+  by `web/scripts/generate_fixtures.mjs` with turf planar buffers — *not* the real
+  AEQD/Hausdorff pipeline. Same schema; regenerate with the real pipeline for the
+  true fence. (I did **not** touch the Q1 repo — I only matched its I/O contract.)
+- **Rendering** (`MapView.tsx`, under the robots): component buffers as subtle
+  data-driven fills, the union fence as a **bold cyan outline**, mission inputs as
+  **dashed** lines + a launch-point marker. **Layer toggles** (Mission / Buffers /
+  Inputs) live in the left panel.
+
+The generator defines the mission once in local E/N metres — the same frame the
+robots live in — and buffers in an *isotropic* (equator-metres) frame so a 200 m
+circle stays round at 77°S, then projects to McMurdo. So the fence lines up with
+the swarm on the map, and (fake mode) all six robots start inside it.
+
+## Feature 2 — Attention & alerting (supervision by exception)
+
+TECH_SPEC §9's *attention management*: at scale an operator supervises **by
+exception**, not by watching every track. `alertEngine.ts` is a **pure,
+unit-tested** state machine (9 vitest cases, `npm test`) fed the `SwarmState`
+stream; it returns the new alerts each frame:
+
+- **Link transitions** — LIVE→STALE (warn) · →LOST (critical) · recovery (info).
+- **Command terminal failures** — REJECTED / EXPIRED / ROBOT_OFFLINE (warn), once
+  each (dedup by command+target).
+- **Geofence breach** — a robot outside the union fence
+  (`@turf/boolean-point-in-polygon`) is **critical**; re-entry is info. Debounced
+  by *state change* (orbiting across the boundary can't spam). A robot already
+  outside when first seen is flagged immediately — see the design note in gotchas.
+
+The **alert feed** (right panel) lists newest-first, colored by severity, each
+ACK-able; the top bar carries an unacked-count badge; a critical alert **flashes
+the robot's map dot** and a breach **pulses the fence outline**; clicking an alert
+**selects + flies to** the robot. The engine is pure and the map/DOM effects are
+injected, so the whole thing is testable without a browser.
+
+### Demo beat (the 30-second story)
+
+1. Open the app (fake mode) — swarm orbiting **inside** the geofence, feed idle.
+2. Select **R-03** (in the ROI); in the command panel set **radius → 450** and
+   APPLY. Its orbit widens past the ROI buffer and it crosses the fence.
+3. **BREACH fires:** R-03's dot flashes red, the fence pulses, the top bar shows
+   `1 ALERTS`, and the feed logs `R-03 … geofence · CRITICAL`.
+4. Click the alert → the map flies to R-03. **ACK** it → the row dims, the flash
+   stops, the badge clears.
+5. Command R-03's radius back down → it re-enters → an `info` re-entry alert.
+
+*(Against a live `launch_swarm`, the fence still renders and breach detection still
+runs, but the fixture is a specific McMurdo mission — the fake swarm is positioned
+to sit inside it. Real `robot_sim` spacing is arbitrary, so real robots may sit
+outside the fixture fence; in production the fence would come from the mission the
+robots are actually flying.)*
 
 ---
 
@@ -90,11 +168,13 @@ npm start                                  # connect to localhost:50051
 cd gui/react-spike/web
 npm install
 npm run dev                                # http://localhost:5173
+npm test                                   # AlertEngine unit tests (vitest, 9 cases)
+npm run gen:fence                          # regenerate the mission fixtures (turf)
 ```
 
 Open `http://localhost:5173`. The top-right badge shows the seam: **FAKE** vs
 **GRPC**, and LIVE / NO-C2 / BRIDGE-DOWN. `npm run build` produces a static bundle;
-`npm run typecheck` is the green gate for both packages.
+`npm run typecheck` + `npm test` are the green gates.
 
 ---
 
@@ -113,22 +193,25 @@ Open `http://localhost:5173`. The top-right badge shows the seam: **FAKE** vs
   headless screenshots against both fake and the real server.
 - **Command status strip.** Per-command, per-target lifecycle chips driven straight
   off `SwarmState.commands` — the UI invents no state (see `command-lifecycle.png`).
-- Both packages **typecheck clean** and the web app **production-builds clean**.
+- **Mission layer** renders (fence + buffers + dashed inputs + toggles), robots sit
+  inside the fence, fixtures match Q1's I/O schema — `feature1-mission.png`.
+- **Alerting**: AlertEngine is **unit-tested (9 vitest cases)**; the geofence breach
+  fires end-to-end in the UI with a flashing dot + feed entry — `feature2-breach.png`.
+- **Typecheck clean, tests green, production build clean** for the web package;
+  bridge typechecks clean.
 
 ## What is NOT verified / not done
 
-- **Live mouse interaction was not click-tested.** Click-to-select, Ctrl-multiselect,
-  the APPLY button, Fit All, and the basemap toggle are all wired and type-checked,
-  and the command *data path* they drive is proven — but I could not drive real
-  clicks headless (see the CDP gotcha), so **Jim should click through once** in a
-  real browser. Low risk (standard React/DOM handlers), but unproven by me.
-- **Trails and heading ticks are subtle in the static screenshots.** They're
-  implemented as GeoJSON line layers (trails = per-robot last-50 world positions,
-  reprojected each frame; heading = a 35 m tick along the heading vector) and are
-  most legible live as the dots move. I didn't get a crisp still of them.
-- **No tests.** Throwaway. The C++ side has the tests that matter.
-- **Bundle is one 958 kB chunk** (MapLibre is ~800 kB of it). Fine for a spike;
-  a real build would code-split the map.
+- **Live mouse interaction was not click-tested.** Click/Ctrl-select, APPLY, Fit
+  All, basemap + layer toggles, alert-click-to-fly, and ACK are all wired and
+  type-checked, and the data paths they drive are proven (breach via a commanded
+  radius; command path via probes) — but I can't drive real clicks headless (see
+  the CDP gotcha). **Jim should click through once.** Low risk.
+- **Headless screenshots of the GeoJSON layers are flaky** (see gotchas) — the
+  committed feature shots are the runs that rendered; on a real GPU it's not an
+  issue. Trails/heading ticks are thin and easiest to see live.
+- **Bundle is one ~1 MB chunk** (MapLibre + turf). Fine for a spike; a real build
+  would code-split the map + tree-shake turf.
 
 ---
 
@@ -167,6 +250,27 @@ Open `http://localhost:5173`. The top-right badge shows the seam: **FAKE** vs
    so Windows Chrome reached the WSL Vite (`:5173`) and bridge (`:8081`) over
    `localhost` cleanly, and OSM raster tiles loaded from the internet — same clean
    OS-boundary story the spec tells about gRPC on `localhost`.
+7. **Headless GeoJSON layers render nondeterministically under `--virtual-time-budget`.**
+   MapLibre parses GeoJSON sources in a **web worker**; virtual-time (which
+   fast-forwards page timers — a 22 s budget exits in ~1.5 s real) starves that
+   worker, so fence/buffer/trail layers *sometimes* don't finish before capture
+   (a near-blank ~44 KB PNG vs a ~90 KB rendered one). What made it usable:
+   `--disable-background-timer-throttling --disable-renderer-backgrounding`, a
+   **dark basemap default** (no OSM tiles competing for the main thread), and a
+   **retry-until-the-PNG-is-big-enough** loop. DOM markers + raster always render;
+   this only bites the GeoJSON layers, and only headless. (This supersedes Session
+   1's "circle layers don't render" note — the real culprit was the GeoJSON worker,
+   not the layer type. DOM markers for the dots are still the right call at this
+   scale.)
+8. **First-sighting-outside is a design decision, not just a demo hack.** The
+   headless capture window is ~1.5 s, far too short to reliably *witness* an
+   inside→outside transition. That forced a good question: should the AlertEngine
+   alert when a robot is *already* outside the fence at first sighting? For
+   exception-based supervision the answer is **yes** — a robot outside the geofence
+   when you start supervising is a live violation you must see, not something to
+   hide because you missed the crossing. So the engine flags first-sighting-outside
+   as critical (inside-on-first-sight stays nominal), which is both more correct and
+   makes the breach observable without sub-second timing.
 
 ---
 
@@ -189,16 +293,34 @@ Open `http://localhost:5173`. The top-right badge shows the seam: **FAKE** vs
 - **A vector basemap + offline tiles.** Raster OSM over the public tile server is a
   demo convenience; a fielded system wants an owned vector style and offline packs
   (and, for real polar ops, a polar projection instead of Web Mercator).
+- **Geofence evaluation belongs on the server, not the client.** Here the breach
+  test is a client-side turf point-in-polygon on a fixture — fine for a demo, wrong
+  for a system: the authoritative fence and the breach decision must live server-side
+  (every client agrees, and a compromised/laggy client can't miss a violation). The
+  fixture would be replaced by the real `gtri-penguin-fence` output, delivered over
+  the feed, and the breach event would arrive *in* `SwarmState`, not be recomputed
+  per client.
+- **Alerting is real state, not view state.** Alerts should be **persisted +
+  audited** (server-authored, with IDs, ownership, ack-by-whom, and replay), not
+  held in React state that a refresh wipes. Severity/priority should be a
+  configurable **policy** (which conditions, what thresholds, escalation, dedup
+  windows), not hard-coded — the seed of §9's attention-management layer.
 - **Robustness:** command ack correlation surfaced in the UI, reconnect/replay with
-  `SwarmState.seq` gap detection, and code-split/lazy-loaded map.
+  `SwarmState.seq` gap detection, and code-split/lazy-loaded map + turf.
 
 ---
 
 ## Bottom line for the demo
 
-If Jim wants 30 seconds of "and because the operator API is framework-neutral, here's
-the *same* system driven by a completely different client — a browser, on a map":
-run the bridge in `--fake` and open the page; it's self-contained and shows robots,
-selection-ready roster, and the command strip. The stronger version is `real-server.png`:
-the browser on the live C++ swarm, **zero core changes**. Either way, it's a
-supporting exhibit for §9 — the WPF client remains the submission.
+Two 30-second stories, both self-contained (`--fake`, no server):
+
+1. **"The same system, a different client."** A browser on a map, driving the
+   unmodified C++ core — §9 client-platform independence. The stronger cut is
+   `real-server.png`: the browser on the live C++ swarm, zero core changes.
+2. **"Supervision by exception."** Robots inside a mission geofence; command one
+   out; a critical breach alert fires, its dot flashes, you click the alert to fly
+   to it and ACK — §9 attention management, made concrete (the beat above).
+
+Both are supporting exhibits for §9 — **the WPF client remains the submission**,
+and every fixture/placeholder here is labeled as such. Nothing was merged to
+master; this lives only on `gui-spike-react`.
