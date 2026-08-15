@@ -16,8 +16,13 @@
             <ColumnDefinition Width="220" />    <!-- The left Roster panel -->
             <ColumnDefinition Width="*" />      <!-- The tactical region takes the rest -->
         </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>      <!-- main content (your existing stuff stays in row 0) -->
+            <RowDefinition Height="Auto"/>   <!-- status bar sizes to content -->
+        </Grid.RowDefinitions>
         <ListBox
             Grid.Column="0"
+            Grid.Row="0"
             ItemsSource="{Binding Robots}"
             SelectedItem="{Binding SelectedRobot, Mode=TwoWay}">
 
@@ -35,8 +40,29 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <Button Grid.Column="1" Content="Fit All" Command="{Binding FitAllCommand}"
+        <Button
+            Grid.Column="1"
+            Grid.Row="0"
+            Content="Fit All" Command="{Binding FitAllCommand}"
             HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Padding="10,4" />
+
+        <!-- Robot Status Count bar -->
+        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Background="#222">
+            <TextBlock Text="{Binding StatusText}"                           Foreground="White"     Margin="8,4"/>
+            <TextBlock Text="{Binding LiveCount,  StringFormat='LIVE {0}'}"  Foreground="LimeGreen" Margin="8,4"/>
+            <TextBlock Text="{Binding StaleCount, StringFormat='STALE {0}'}" Foreground="Gold"      Margin="8,4"/>
+            <TextBlock Text="{Binding LostCount,  StringFormat='LOST {0}'}"  Foreground="Red"       Margin="8,4"/>
+        </StackPanel>
+        <ItemsControl Grid.Column="1" ItemsSource="{Binding Robots}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Polyline Points="{Binding Trail}" Stroke="DodgerBlue" StrokeThickness="1" Opacity="0.4"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
         <ItemsControl Grid.Column="1" ItemsSource="{Binding Robots}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>

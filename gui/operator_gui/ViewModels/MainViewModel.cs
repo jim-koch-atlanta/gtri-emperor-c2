@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Media;
 using Emperor;
 using operator_gui.Feed;
 
@@ -43,6 +44,11 @@ public sealed class MainViewModel : ObservableObject
             if (_SelectedRobot is not null) _SelectedRobot.IsSelected = true;   // set new
         }
     }
+
+    // Counts for the bottom status bar.
+    private int _LiveCount;  public int LiveCount  { get => _LiveCount;  private set => SetField(ref _LiveCount, value); }
+    private int _StaleCount; public int StaleCount { get => _StaleCount; private set => SetField(ref _StaleCount, value); }
+    private int _LostCount;  public int LostCount  { get => _LostCount;  private set => SetField(ref _LostCount, value); }
 
     // The ICommand for the Fit All button.
     public RelayCommand FitAllCommand { get; }
@@ -123,9 +129,34 @@ public sealed class MainViewModel : ObservableObject
             vm.Radius = tel.Radius;
             vm.Status = StatusLabel(rs.LinkStatus);
             vm.Age = rs.AgeMs;
+
+            vm.WorldTrail.Add(new Point(vm.X, vm.Y));
+            if (vm.WorldTrail.Count > 50) {
+                vm.WorldTrail.RemoveAt(0);
+            }
+            RebuildTrail(vm);
         }
 
         StatusText = $"{Robots.Count} robots · {frame.Robots.Count} in frame";
+
+        int live = 0, stale = 0, lost = 0;
+        foreach (var r in Robots)
+        {
+            switch (r.Status) {
+                case "LIVE":
+                    live++;
+                    break;
+                case "STALE":
+                    stale++;
+                    break;
+                case "LOST":
+                    lost++;
+                    break;
+                }
+        }
+        LiveCount = live;
+        StaleCount = stale;
+        LostCount = lost;
     }
 
     // Unchanged seam from the spike — identity today. Scale/offset + Fit All is
@@ -135,6 +166,17 @@ public sealed class MainViewModel : ObservableObject
         double canvasY = (CenterY - y) * Scale + VH/2;
 
         return (canvasX, canvasY);
+    }
+
+    private void RebuildTrail(RobotViewModel vm)
+    {
+        var pts = new PointCollection(vm.WorldTrail.Count);
+        foreach (var w in vm.WorldTrail)
+        {
+            var (cx, cy) = WorldToCanvas(w.X, w.Y);
+            pts.Add(new Point(cx, cy));
+        }
+        vm.Trail = pts;
     }
 
     private static string StatusLabel(LinkStatus s) => s switch
@@ -180,6 +222,7 @@ public sealed class MainViewModel : ObservableObject
         foreach (var r in Robots)
         {
             (r.CanvasX, r.CanvasY) = WorldToCanvas(r.X, r.Y);
+            RebuildTrail(r);
         }
     }
 }

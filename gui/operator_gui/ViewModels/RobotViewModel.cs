@@ -1,3 +1,6 @@
+using System.Windows;
+using System.Windows.Media;
+
 namespace operator_gui.ViewModels;
 
 public sealed class RobotViewModel : ObservableObject
@@ -40,4 +43,10 @@ public sealed class RobotViewModel : ObservableObject
     // Is this specific robot selected on the UI?
     private bool _IsSelected;
     public bool IsSelected { get => _IsSelected; set => SetField(ref _IsSelected, value); }
+
+    public List<Point> WorldTrail { get; } = new();   // world X/Y, last ~50
+
+    private PointCollection _Trail = new();
+    public PointCollection Trail { get => _Trail; set => SetField(ref _Trail, value); }
+
 }
