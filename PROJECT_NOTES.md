@@ -122,16 +122,63 @@ Expect dots near the TOP (centers at world y=0 = window top; identity transform;
 top halves clipped). Framing is Saturday's Fit All — milestone = real data
 flowing, which moving dots prove.
 
+## GUI Session 2 — §3 operator experience DONE (Fri 2026-08-14 eve, ~2.5h)
+
+Jim typed all VM/UI; Claude taught idioms. Build green throughout. The GUI
+Saturday-entry items above all got knocked out tonight, plus most of §3.
+
+**DONE (Steps 0–5):**
+- **Ownership review of GrpcFeed** — Jim narrated channel→client→call→stream,
+  background reader, marshal, upsert; owns it. (Recovered on two traps: the
+  request-direction flip, and "await blocks" — it yields, doesn't block.)
+- **Real `WorldToCanvas`** — scale + offset + **Y-flip** (swarm was mirrored
+  vertically for days: world-Y up vs canvas-Y down). Transform state on the VM;
+  **Fit All** button (`RelayCommand`/ICommand) computes center+scale from the
+  robot bounding box + reprojects.
+- **`send_command_probe`** (`tools/`, C++) — reads a robot's current radius, then
+  `SendCommand SetParameters{radius×1.5}`. **FIRST end-to-end command in system
+  history**: GUI-shape → fan-out → RobotCommand → applied → telemetry → GUI.
+  `accepted=true`, orbit widened. **Committed.**
+- **Roster** — ListBox (Id, colored status dot via `StatusToBrushConverter`
+  (custom IValueConverter), age, speed, radius). Two-way **selection sync**
+  (roster↔canvas) via one shared `SelectedRobot` + `SelectedItem` TwoWay; canvas
+  side via `Dot_Click` code-behind reading the clicked element's DataContext.
+  **Selection ring** via an `IsSelected` bool the VM maintains.
+- **Status bar** — LIVE/STALE/LOST counts as notifying props recomputed each
+  frame in ApplyFrame (a computed getter never refreshes — nothing raises its
+  PropertyChanged; the every-frame recompute is the fix). + feed/connection text.
+- **Trails (stretch)** — per-robot last-50 as `PointCollection`/`Polyline` in a
+  SEPARATE unpositioned ItemsControl layer UNDER the dots. Stored in WORLD coords,
+  reprojected every frame (like the dots), so Fit All / resize don't strand them.
+  Reassign a fresh PointCollection to notify (in-place mutate is unreliable).
+
+**KNOWN / DEFERRED:**
+- **robot_sim phase-jump on param change (Jim's motion model — clean up later):**
+  `phi = (V/R)·t + theta0`, `t` = elapsed-since-launch. Changing R rescales ALL
+  past time → phase teleports by `V·t·(1/R_new − 1/R_old)` to an elapsed-time-
+  dependent (≈arbitrary) angle, ON TOP of the intended radial teleport. Kept
+  as-is (spec says teleport). Clean fix = rebase on apply (capture current phi,
+  set theta0=phi, start=now) so only the radial teleport remains — ~4 lines in
+  `applyParams` (needs `now` passed in). Verified mechanism via the probe.
+- **VW/VH hardcoded 800×450** → Fit All doesn't track window resize. Wire the
+  tactical Canvas ActualWidth/Height into the VM (code-behind SizeChanged).
+
+**TECH_SPEC §10 AMENDMENT (decided — fold into the spec):** verification =
+unit (gtests) + smoke (probes) + live demo + **sanitizers-lite** (ASan/UBSan +
+TSan on multi-link paths). The scripted headless integration suite (§10's
+"Integration (headless)" bullets) is **deliberately cut** — probes + live demo
+cover it for a take-home; design documented, automation not built.
+
 ### >>> SATURDAY ENTRY POINT (GUI) <<<
-1. **Ownership review of GrpcFeed** — the two idiom comments are written for this
-   reader; read them aloud, make sure you can defend the thread story.
-2. **Gates-lite (~20 min):** warning-clean (done); run under both feeds; confirm
-   graceful stream-end (kill the server → Title shows "feed error…", no crash).
-3. **Centerpiece §5:** command panel + status strip (SendCommand → per-target
-   PENDING→SENT→APPLIED, circle-widen). The question's centerpiece.
-- **send_command_probe STILL OWED** — backend routes SendCommand through the
-  tracker but nothing *sends* yet; needed for §10 integration AND the GUI cmd path.
-- Real `WorldToCanvas` (scale+offset+Fit All) so robots are framed, not top-clipped.
+1. **Gates-lite (~20 min):** operator_gui warning-clean; run both feeds; confirm
+   graceful stream-end (kill server → Title "feed error…", no crash). C++:
+   ASan/UBSan on the suite, TSan on multi-link server paths.
+2. **Centerpiece §5 — command panel + status strip:** SendCommand FROM the GUI
+   (not just the probe) → per-target PENDING→SENT→APPLIED in a status strip,
+   circle widens live. The question's centerpiece; most of the demo value. The
+   probe proved the wire — now surface it in the operator UI.
+3. Polish if time: VW/VH resize wiring; per-point trail fade; ring centering.
+   (Roster + selection + trails are DONE — no longer "stretch".)
 
 ---
 
