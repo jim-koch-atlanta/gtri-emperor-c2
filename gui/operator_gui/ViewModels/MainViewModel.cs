@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using Emperor;
 using operator_gui.Feed;
@@ -32,18 +33,18 @@ public sealed class MainViewModel : ObservableObject
     private double _VH = 450;
     public double VH { get => _VH; set => SetField(ref _VH, value); }
 
-    // The robot selected on the UI.
-    private RobotViewModel? _SelectedRobot;
-    public RobotViewModel? SelectedRobot
+    // The robots selected on the UI.
+    public ObservableCollection<RobotViewModel> SelectedRobots { get; } = new();
+
+    public void SetSelection(IEnumerable<RobotViewModel> robots)
     {
-        get => _SelectedRobot;
-        set
-        {
-            if (_SelectedRobot is not null) _SelectedRobot.IsSelected = false;  // clear old
-            SetField(ref _SelectedRobot, value);
-            if (_SelectedRobot is not null) _SelectedRobot.IsSelected = true;   // set new
-        }
+        var chosen = new HashSet<RobotViewModel>(robots);
+        foreach (var r in Robots)
+            r.IsSelected = chosen.Contains(r);
     }
+
+    public void ToggleSelection(RobotViewModel robot)
+        => robot.IsSelected = !robot.IsSelected;
 
     // Counts for the bottom status bar.
     private int _LiveCount;  public int LiveCount  { get => _LiveCount;  private set => SetField(ref _LiveCount, value); }
@@ -135,6 +136,24 @@ public sealed class MainViewModel : ObservableObject
                 vm.WorldTrail.RemoveAt(0);
             }
             RebuildTrail(vm);
+
+            // Set up the IsSelected property to be bi-directional.
+            vm.PropertyChanged += (s, a) =>
+            {
+                if (a.PropertyName == nameof(RobotViewModel.IsSelected) && s is RobotViewModel r)
+                {
+                    if (r.IsSelected)
+                    {
+                        if (!SelectedRobots.Contains(r))
+                            SelectedRobots.Add(r);
+                    }
+                    else {
+                        if (SelectedRobots.Contains(r))
+                        SelectedRobots.Remove(r);
+                    }
+                    // Step 2 will also refresh the command panel here
+                }
+            };
         }
 
         StatusText = $"{Robots.Count} robots · {frame.Robots.Count} in frame";

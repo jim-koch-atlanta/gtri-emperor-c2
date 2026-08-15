@@ -27,7 +27,10 @@ public partial class MainWindow : Window
             fe.DataContext is RobotViewModel robot &&
             DataContext is MainViewModel vm)
         {
-            vm.SelectedRobot = robot;
+            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+                vm.ToggleSelection(robot);
+            else
+                vm.SetSelection(new[] { robot });
         }
     }
 }

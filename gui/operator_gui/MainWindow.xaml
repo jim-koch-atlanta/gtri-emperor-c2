@@ -24,7 +24,14 @@
             Grid.Column="0"
             Grid.Row="0"
             ItemsSource="{Binding Robots}"
-            SelectedItem="{Binding SelectedRobot, Mode=TwoWay}">
+            SelectionMode="Extended">
+
+            <!-- Allow selection on the canvas to result in selection on the Robot Roster panel -->
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                </Style>
+            </ListBox.ItemContainerStyle>
 
             <ListBox.ItemTemplate>
                 <DataTemplate>
