@@ -8,7 +8,7 @@ namespace operator_gui;
 public sealed class StatusToBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        => value as string switch
+        => (value as string) switch
         {
             "LIVE"  => Brushes.LimeGreen,
             "STALE" => Brushes.Gold,
