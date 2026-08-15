@@ -153,13 +153,14 @@ Saturday-entry items above all got knocked out tonight, plus most of §3.
   Reassign a fresh PointCollection to notify (in-place mutate is unreliable).
 
 **KNOWN / DEFERRED:**
-- **robot_sim phase-jump on param change (Jim's motion model — clean up later):**
-  `phi = (V/R)·t + theta0`, `t` = elapsed-since-launch. Changing R rescales ALL
-  past time → phase teleports by `V·t·(1/R_new − 1/R_old)` to an elapsed-time-
-  dependent (≈arbitrary) angle, ON TOP of the intended radial teleport. Kept
-  as-is (spec says teleport). Clean fix = rebase on apply (capture current phi,
-  set theta0=phi, start=now) so only the radial teleport remains — ~4 lines in
-  `applyParams` (needs `now` passed in). Verified mechanism via the probe.
+- **robot_sim phase-jump on param change — FIXED (Sat, Step 6).** Was:
+  `phi = (V/R)·t + theta0` with `t` = elapsed-since-launch, so changing R rescaled
+  ALL past time → phase teleported by `V·t·(1/R_new − 1/R_old)` to an ≈arbitrary
+  angle on top of the intended radial teleport. Fix (rebase in `applyParams`,
+  before applying new params): capture `φ = (V/R)·(now−start) + theta0`, then set
+  `theta0 = φ`, `start = now` → only the radial teleport remains; param changes
+  grow the orbit outward smoothly. Gotcha hit: compute φ directly — do NOT reuse
+  computePosition's heading out-param (heading = φ + π/2 → a 90° kick).
 - **VW/VH hardcoded 800×450** → Fit All doesn't track window resize. Wire the
   tactical Canvas ActualWidth/Height into the VM (code-behind SizeChanged).
 
@@ -169,16 +170,49 @@ TSan on multi-link paths). The scripted headless integration suite (§10's
 "Integration (headless)" bullets) is **deliberately cut** — probes + live demo
 cover it for a take-home; design documented, automation not built.
 
-### >>> SATURDAY ENTRY POINT (GUI) <<<
-1. **Gates-lite (~20 min):** operator_gui warning-clean; run both feeds; confirm
-   graceful stream-end (kill server → Title "feed error…", no crash). C++:
-   ASan/UBSan on the suite, TSan on multi-link server paths.
-2. **Centerpiece §5 — command panel + status strip:** SendCommand FROM the GUI
-   (not just the probe) → per-target PENDING→SENT→APPLIED in a status strip,
-   circle widens live. The question's centerpiece; most of the demo value. The
-   probe proved the wire — now surface it in the operator UI.
-3. Polish if time: VW/VH resize wiring; per-point trail fade; ring centering.
-   (Roster + selection + trails are DONE — no longer "stretch".)
+## Saturday centerpiece — command panel + status strip DONE (Sat 2026-08-15, ~3h)
+
+Strict mode: Jim typed all VM/logic/XAML-with-bindings; Claude taught idioms.
+The §5 command lifecycle is now live and **demo-verified**.
+
+**DONE (Steps 1–6):**
+- **Multi-select** — roster `SelectionMode=Extended` + canvas ctrl-click, unified
+  on ONE `IsSelected` source of truth via `ItemContainerStyle` binding
+  `ListBoxItem.IsSelected` ↔ `robot.IsSelected` (the payoff to "SelectedItems
+  isn't a DP"). `SelectedRobots` maintained reactively off `IsSelected`. Rings on all.
+- **Command panel** (col 2) — first-selected robot's speed/radius as start values
+  (snapshot-on-select, no live clobber). APPLY text `APPLY TO N ROBOT(S)` bound to
+  `SelectedRobots.Count`; `RelayCommand` upgraded (canExecute + CommandManager) →
+  auto-disabled at N=0.
+- **Send path** — `IFeed.SendCommand`; `GrpcFeed` **async** (channel must stay
+  alive through the await; the non-async `using` disposed it mid-call — fixed);
+  `FakeFeed` acks. `Apply()` builds OperatorCommand (GUID id, ts now, expiry +10s,
+  targets, presence-only SetParameters), fires via `_ = SendAsync(...)`.
+- **Status strip** (bottom) — nested `ItemsControl` (commands → per-target chips),
+  chips color-coded by `CmdStateToBrushConverter`, upsert by command_id, newest on
+  top. States update each frame ⇒ lifecycle visible.
+- **Verification beats (§10 amended: the demo IS the test) — ALL PASSED:** single
+  radius→APPLIED+widen · 2-target→independent chips · STALE robot→PENDING for 10s→
+  EXPIRED · LOST robot→ROBOT_OFFLINE immediately · `kill -CONT`→recovery to LIVE.
+- **Step 6 — phase-jump rebase in robot_sim** (FIXED note above). **UNCOMMITTED**
+  (`src/robot_sim/main.cpp`) — everything GUI was committed incrementally.
+
+**Gotchas banked:** `SelectedItems` is NOT a DependencyProperty (bind per-item
+`ListBoxItem.IsSelected` instead) · mutate-during-enumerate crash (iterate
+`Robots`, not the handler-mutated `SelectedRobots`) · non-async `using` on a gRPC
+channel disposes it mid-call · proto `Accepted.accepted` → C# `Accepted_` (name
+clash) · happy-path lifecycle is sub-frame; the failure paths carry the visible
+story · `DependencyProperty` = binding TARGET, `INotifyPropertyChanged` = SOURCE.
+
+### >>> SUNDAY ENTRY POINT <<<
+1. **README + demo script** — run steps (`launch_swarm N`, GUI `--grpc`) + the
+   5-beat narrative (the beats above ARE the script).
+2. **Q1 wiring items** — deferred from that project (check its PROJECT_NOTES).
+3. **Dry run** end-to-end, timed, screen-share rehearsal.
+4. **Mock defense** — committee role-play, both questions; be ready to defend
+   every idiom (threading/marshal, DP vs INPC, the selection model, the lifecycle).
+- Optional polish only if it helps the demo: VW/VH resize wiring; trail fade; ring
+  centering; fold the §10 amendment into TECH_SPEC.
 
 ---
 
