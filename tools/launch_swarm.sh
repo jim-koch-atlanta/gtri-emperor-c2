@@ -9,8 +9,9 @@ if ! [[ "$NUM_ROBOTS" =~ ^[1-9][0-9]*$ ]]; then
     exit 1
 fi
 
-cmake -S . -B build
-cmake --build build
+# Uncomment to build c2 server and robot sim
+# cmake -S . -B build
+# cmake --build build
 
 SERVER=build/src/c2_server/emperor_c2_server
 ROBOT=build/src/robot_sim

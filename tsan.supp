@@ -1,0 +1,56 @@
+# ThreadSanitizer suppressions — emperor_c2 multi-link server paths.
+#
+# gRPC, Abseil, and protobuf (in ~/.local) are NOT built with -fsanitize=thread,
+# so TSan cannot see their internal synchronization and reports false-positive
+# data races inside their event-engine, slice, completion-queue, and message
+# parse/serialize machinery. Those frames are reached through our stream
+# Read()/Write() calls in grpc_robot_gateway.cpp (Link) and
+# operator_feed_service.cpp (Subscribe) — but the racing memory is always a
+# gRPC/protobuf-internal object, never ours.
+#
+# Verified (see docs/TSAN.md): with a live server + robots + subscriber + command,
+# ZERO reports touch our own shared state — TrackStore, LinkWatchdog,
+# CommandTracker, or the per-link registry. Every entry below matches only
+# third-party frames; none match a `c2::` symbol (our functions merely take
+# `grpc::` parameters, which these substrings deliberately avoid).
+#
+# Syntax: `race:<substr>` suppresses a report if <substr> appears in ANY frame.
+
+# --- Abseil (any_invocable, synchronization_internal, container_internal, ...) ---
+race:absl
+
+# --- gRPC core + event engine + slices + portability layer ---
+race:grpc_core
+race:grpc_event_engine
+race:grpc_slice
+race:gpr_
+
+# --- protobuf wire parse/serialize internals ---
+race:google::protobuf
+
+# --- grpcpp C++ message-path + dispatch machinery. `grpc::internal::` covers the
+#     sync-stream handlers (BidiStreamingHandler, CallOp, CatchingFunctionHandler,
+#     ...) that call our handler; it is chosen specifically because our own frames
+#     only ever take `grpc::ServerContext` / `grpc::ServerReaderWriter` PARAMETERS
+#     (never `grpc::internal::`), so no c2:: frame is ever matched. ---
+race:grpc::internal::
+race:ProtoBufferReader
+race:ProtoBufferWriter
+race:SerializationTraits
+race:CompletionQueue
+
+# --- Residual gRPC event-engine thread-pool internals. These races are strictly
+#     between gRPC's own 'event_engine' / 'grpcpp_sync_ser' threads on gRPC-internal
+#     ints and (heap, size>SSO) strings; the accesses inline down to bare std ops
+#     with NO library frame left in the access stack (the only gRPC attribution is
+#     the thread-creation stack). So they must be matched by TOP frame (`race_top:`).
+#     The int-op matches are exact and cannot collide with our code (we allocate no
+#     int arrays / unique_ptr<int>). The two string-op matches hit the HEAP
+#     destroy/copy path only — our robot_id/command_id strings are short (SSO) and
+#     mutex-guarded, so they don't take this path; and the definitive check remains
+#     that NO report references c2::TrackStore/LinkWatchdog/CommandTracker/RobotLinkState.
+#     (A shipping build would compile gRPC+absl with TSan to remove these entirely.)
+race_top:std::__copy_n_a<int
+race_top:std::default_delete<int>
+race_top:std::char_traits<char>::copy
+race_top:std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::~basic_string
