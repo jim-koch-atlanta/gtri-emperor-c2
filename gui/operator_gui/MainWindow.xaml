@@ -6,11 +6,12 @@
         xmlns:local="clr-namespace:operator_gui"
         xmlns:vm="clr-namespace:operator_gui.ViewModels"
         mc:Ignorable="d"
-        Title="{Binding StatusText}" Height="450" Width="800"
+        Title="{Binding StatusText}" Width="1024" Height="768"
         Background="{StaticResource Brush.Bg}"
         Foreground="{StaticResource Brush.Text}"
         FontFamily="Segoe UI" FontSize="13"
-        TextOptions.TextFormattingMode="Display">
+        TextOptions.TextFormattingMode="Display"
+        Top="10" Left="10">
     <Window.Resources>
         <BooleanToVisibilityConverter   x:Key="BoolToVis"/>
         <local:StatusToBrushConverter   x:Key="StatusToBrush"/>
