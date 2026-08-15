@@ -6,7 +6,7 @@
     <Application.Resources>
         <!-- ===== react-spike dark tactical palette (GitHub-dark) ===== -->
         <SolidColorBrush x:Key="Brush.Bg"     Color="#0d1117"/>
-        <SolidColorBrush x:Key="Brush.Panel"  Color="#161b22"/>
+        <SolidColorBrush x:Key="Brush.Panel"  Color="#1c2128"/>
         <SolidColorBrush x:Key="Brush.Panel2" Color="#10151c"/>
         <SolidColorBrush x:Key="Brush.Border" Color="#30363d"/>
         <SolidColorBrush x:Key="Brush.Text"   Color="#e6edf3"/>
