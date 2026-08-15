@@ -6,7 +6,12 @@
         xmlns:local="clr-namespace:operator_gui"
         xmlns:vm="clr-namespace:operator_gui.ViewModels"
         mc:Ignorable="d"
-        Title="{Binding StatusText}" Height="450" Width="800">
+        Title="{Binding StatusText}" Width="1024" Height="768"
+        Background="{StaticResource Brush.Bg}"
+        Foreground="{StaticResource Brush.Text}"
+        FontFamily="Segoe UI" FontSize="13"
+        TextOptions.TextFormattingMode="Display"
+        Top="10" Left="10">
     <Window.Resources>
         <BooleanToVisibilityConverter   x:Key="BoolToVis"/>
         <local:StatusToBrushConverter   x:Key="StatusToBrush"/>
@@ -23,85 +28,177 @@
             <RowDefinition Height="140"/>    <!-- command status bar -->
             <RowDefinition Height="Auto"/>   <!-- status bar sizes to content -->
         </Grid.RowDefinitions>
+
+        <!-- subtle tactical grid (behind trails/dots; never intercepts clicks) -->
+        <Rectangle Grid.Column="1" Grid.Row="0" IsHitTestVisible="False">
+            <Rectangle.Fill>
+                <DrawingBrush TileMode="Tile" Viewport="0,0,40,40" ViewportUnits="Absolute"
+                              Viewbox="0,0,40,40" ViewboxUnits="Absolute">
+                    <DrawingBrush.Drawing>
+                        <GeometryDrawing Geometry="M0,0 L40,0 M0,0 L0,40">
+                            <GeometryDrawing.Pen><Pen Brush="#182029" Thickness="1"/></GeometryDrawing.Pen>
+                        </GeometryDrawing>
+                    </DrawingBrush.Drawing>
+                </DrawingBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
         <ListBox
             Grid.Column="0"
             Grid.Row="0"
             ItemsSource="{Binding Robots}"
-            SelectionMode="Extended">
+            SelectionMode="Extended"
+            Background="{StaticResource Brush.Panel}"
+            BorderThickness="0"
+            Foreground="{StaticResource Brush.Text}">
 
             <!-- Allow selection on the canvas to result in selection on the Robot Roster panel -->
             <ListBox.ItemContainerStyle>
                 <Style TargetType="ListBoxItem">
+                    <!-- selection binding — UNCHANGED (drives roster<->canvas sync) -->
                     <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="Foreground" Value="{StaticResource Brush.Text}"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <Border x:Name="bd" Background="Transparent"
+                                        BorderThickness="3,0,0,0" BorderBrush="Transparent">
+                                    <ContentPresenter/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.Panel2}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="bd" Property="Background" Value="#1F2937"/>
+                                        <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Brush.Accent}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
                 </Style>
             </ListBox.ItemContainerStyle>
 
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <StackPanel>
-                        <Ellipse Width="10" Height="10"
-                            Fill="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
-                        <TextBlock Text="{Binding Id}"/>
-                        <TextBlock Text="{Binding Status}"/>
-                        <TextBlock Text="{Binding Age}"/>
-                        <TextBlock Text="{Binding Speed}"/>
-                        <TextBlock Text="{Binding Radius}"/>
-                    </StackPanel>
+                    <Grid Margin="12,7">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="52"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Ellipse Grid.Column="0" Grid.Row="0" Grid.RowSpan="2"
+                                 Width="10" Height="10" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                 Fill="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
+
+                        <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding Id}"
+                                   FontFamily="Consolas" FontWeight="SemiBold" VerticalAlignment="Center"/>
+
+                        <TextBlock Grid.Column="2" Grid.Row="0" Text="{Binding Status}"
+                                   FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"
+                                   Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
+
+                        <TextBlock Grid.Column="3" Grid.Row="0" Text="{Binding Age, StringFormat='{}{0} ms'}"
+                                   FontSize="11" Foreground="{StaticResource Brush.Muted}"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
+
+                        <StackPanel Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="1"
+                                    Orientation="Horizontal" Margin="0,2,0,0">
+                            <TextBlock Text="{Binding Speed,  StringFormat='V {0:0.#}'}"
+                                       FontSize="11" Foreground="{StaticResource Brush.Muted}"/>
+                            <TextBlock Text="{Binding Radius, StringFormat='R {0:0.#}'}"
+                                       FontSize="11" Foreground="{StaticResource Brush.Muted}" Margin="10,0,0,0"/>
+                        </StackPanel>
+                    </Grid>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
         <Button
             Grid.Column="1"
             Grid.Row="0"
+            Style="{StaticResource GhostButton}"
             Content="Fit All" Command="{Binding FitAllCommand}"
-            HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Padding="10,4" />
+            HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" />
 
-        <ScrollViewer Grid.Row="1" Grid.ColumnSpan="3" VerticalScrollBarVisibility="Auto" Background="#151515">
-            <ItemsControl ItemsSource="{Binding Commands}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <!-- One Command row -->
-                        <StackPanel Orientation="Horizontal" Margin="6,3">
-                            <TextBlock Text="{Binding ShortId}" Foreground="#aaa" Width="72" FontFamily="Consolas"/>
+        <Border Grid.Row="1" Grid.ColumnSpan="3"
+                Background="{StaticResource Brush.Panel}"
+                BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,1,0,0">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="COMMAND STATUS"
+                           Style="{StaticResource PanelTitle}" Margin="12,8,0,2"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Commands}" Margin="0,0,0,6">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <!-- One Command row -->
+                                <StackPanel Orientation="Horizontal" Margin="12,3">
+                                    <TextBlock Text="{Binding ShortId}" Foreground="{StaticResource Brush.Muted}"
+                                               Width="150" FontFamily="Consolas" FontSize="11" VerticalAlignment="Center"/>
 
-                            <!-- For each command, the per-Target chips -->
-                            <ItemsControl ItemsSource="{Binding Targets}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <!-- One Chip, colored by state -->
-                                        <Border CornerRadius="3" Margin="2,0" Padding="5,1"
-                                                Background="{Binding State, Converter={StaticResource CmdStateToBrush}}">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding RobotId}" Foreground="White" FontSize="11"/>
-                                                <TextBlock Text="{Binding State}"   Foreground="White" FontSize="11" Margin="4,0,0,0"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+                                    <!-- per-target chips (rounded, outlined + text colored by state) -->
+                                    <ItemsControl ItemsSource="{Binding Targets}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border CornerRadius="9" Margin="3,1" Padding="7,1"
+                                                        Background="{StaticResource Brush.Panel2}"
+                                                        BorderThickness="1"
+                                                        BorderBrush="{Binding State, Converter={StaticResource CmdStateToBrush}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding RobotId}" FontFamily="Consolas"
+                                                                   FontSize="11" FontWeight="SemiBold"
+                                                                   Foreground="{Binding State, Converter={StaticResource CmdStateToBrush}}"/>
+                                                        <TextBlock Text="{Binding State}" FontFamily="Consolas"
+                                                                   FontSize="11" FontWeight="SemiBold" Margin="5,0,0,0"
+                                                                   Foreground="{Binding State, Converter={StaticResource CmdStateToBrush}}"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
 
         <!-- Robot Status Count bar -->
-        <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Orientation="Horizontal" Background="#222">
-            <TextBlock Text="{Binding StatusText}"                           Foreground="White"     Margin="8,4"/>
-            <TextBlock Text="{Binding LiveCount,  StringFormat='LIVE {0}'}"  Foreground="LimeGreen" Margin="8,4"/>
-            <TextBlock Text="{Binding StaleCount, StringFormat='STALE {0}'}" Foreground="Gold"      Margin="8,4"/>
-            <TextBlock Text="{Binding LostCount,  StringFormat='LOST {0}'}"  Foreground="Red"       Margin="8,4"/>
-        </StackPanel>
+        <Border Grid.Row="2" Grid.ColumnSpan="3"
+                Background="{StaticResource Brush.Panel}"
+                BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,1,0,0">
+            <DockPanel LastChildFill="False" Margin="12,7">
+                <TextBlock DockPanel.Dock="Left" Text="SWARM C2" FontWeight="Bold"
+                           Foreground="{StaticResource Brush.Text}" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                <TextBlock DockPanel.Dock="Left" Text="{Binding StatusText}"
+                           Foreground="{StaticResource Brush.Muted}" FontSize="11" VerticalAlignment="Center"/>
+
+                <TextBlock DockPanel.Dock="Right" Text="{Binding LostCount,  StringFormat='LOST {0}'}"
+                           Foreground="{StaticResource Brush.Lost}"  FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding StaleCount, StringFormat='STALE {0}'}"
+                           Foreground="{StaticResource Brush.Stale}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding LiveCount,  StringFormat='LIVE {0}'}"
+                           Foreground="{StaticResource Brush.Live}"  FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            </DockPanel>
+        </Border>
         <ItemsControl Grid.Column="1" ItemsSource="{Binding Robots}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Polyline Points="{Binding Trail}" Stroke="DodgerBlue" StrokeThickness="1" Opacity="0.4"/>
+                    <Polyline Points="{Binding Trail}" Stroke="{StaticResource Brush.Accent}" StrokeThickness="1.5" Opacity="0.35"/>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -121,30 +218,47 @@
                 <DataTemplate>
                     <StackPanel>
                         <Grid Width="22" Height="22">
-                            <Ellipse
-                                Width="22" Height="22" Stroke="Yellow" StrokeThickness="2" Fill="Transparent"
-                                    Visibility="{Binding IsSelected, Converter={StaticResource BoolToVis}}"/>                            
-                            <Ellipse
-                                Width="14" Height="14" Fill="DodgerBlue"
-                                MouseLeftButtonDown="Dot_Click" />
+                            <Ellipse Width="22" Height="22" Stroke="{StaticResource Brush.Text}" StrokeThickness="2"
+                                     Fill="Transparent"
+                                     Visibility="{Binding IsSelected, Converter={StaticResource BoolToVis}}">
+                                <Ellipse.Effect>
+                                    <DropShadowEffect Color="#e6edf3" BlurRadius="8" ShadowDepth="0" Opacity="0.7"/>
+                                </Ellipse.Effect>
+                            </Ellipse>
+                            <Ellipse Width="14" Height="14"
+                                     Fill="{StaticResource Brush.Accent}"
+                                     Stroke="{StaticResource Brush.Bg}" StrokeThickness="2"
+                                     MouseLeftButtonDown="Dot_Click" />
                         </Grid>
-                        <TextBlock Text="{Binding Id}"/>
+                        <TextBlock Text="{Binding Id}" FontFamily="Consolas" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{StaticResource Brush.Text}" HorizontalAlignment="Center" Margin="0,1,0,0">
+                            <TextBlock.Effect>
+                                <DropShadowEffect Color="#0d1117" BlurRadius="3" ShadowDepth="0"/>
+                            </TextBlock.Effect>
+                        </TextBlock>
                     </StackPanel>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
         <!-- The command panel -->
-        <StackPanel Grid.Column="2" Grid.Row="0" Margin="10" Background="#1a1a1a">
-            <TextBlock Text="COMMAND" FontWeight="Bold" Foreground="White" Margin="0,0,0,10"/>
-            <TextBlock Text="Speed (V)" Foreground="#ccc"/>
-            <TextBox Text="{Binding CommandSpeed}"/>
-            <TextBlock Text="Radius (R)" Foreground="#ccc" Margin="0,8,0,0"/>
-            <TextBox Text="{Binding CommandRadius}"/>
-            <Button Command="{Binding ApplyCommand}" Margin="0,12,0,0" Padding="8,4">
-                <TextBlock Text="{Binding SelectedRobots.Count, StringFormat='APPLY TO {0} ROBOT(S)'}"/>
-            </Button>
-        </StackPanel>
+        <Border Grid.Column="2" Grid.Row="0"
+                Background="{StaticResource Brush.Panel}"
+                BorderBrush="{StaticResource Brush.Border}" BorderThickness="1,0,0,0">
+            <StackPanel Margin="14,12">
+                <TextBlock Text="COMMAND" Style="{StaticResource PanelTitle}"/>
+
+                <TextBlock Text="SPEED (V)" Foreground="{StaticResource Brush.Muted}" FontSize="11" Margin="0,0,0,4"/>
+                <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding CommandSpeed}"/>
+
+                <TextBlock Text="RADIUS (R)" Foreground="{StaticResource Brush.Muted}" FontSize="11" Margin="0,10,0,4"/>
+                <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding CommandRadius}"/>
+
+                <Button Style="{StaticResource ApplyButton}" Command="{Binding ApplyCommand}" Margin="0,16,0,0">
+                    <TextBlock Text="{Binding SelectedRobots.Count, StringFormat='APPLY TO {0} ROBOT(S)'}"/>
+                </Button>
+            </StackPanel>
+        </Border>
 
     </Grid>
 </Window>
