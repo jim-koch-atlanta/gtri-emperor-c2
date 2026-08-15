@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Emperor;
+using Google.Protobuf.WellKnownTypes;
 using operator_gui.Feed;
 
 namespace operator_gui.ViewModels;
@@ -33,7 +34,14 @@ public sealed class MainViewModel : ObservableObject
     private double _VH = 450;
     public double VH { get => _VH; set => SetField(ref _VH, value); }
 
+    // Properties for sending a command for a change in speed or radius.
+    private double _CommandSpeed;
+    public double CommandSpeed  { get => _CommandSpeed;  set => SetField(ref _CommandSpeed, value); }
+
+    private double _CommandRadius;
+    public double CommandRadius { get => _CommandRadius; set => SetField(ref _CommandRadius, value); }
     // The robots selected on the UI.
+
     public ObservableCollection<RobotViewModel> SelectedRobots { get; } = new();
 
     public void SetSelection(IEnumerable<RobotViewModel> robots)
@@ -41,6 +49,13 @@ public sealed class MainViewModel : ObservableObject
         var chosen = new HashSet<RobotViewModel>(robots);
         foreach (var r in Robots)
             r.IsSelected = chosen.Contains(r);
+
+        // Update the Command Panel's values.
+        var first = SelectedRobots.FirstOrDefault();
+        if (first is not null) {
+            CommandSpeed = first.Speed;
+            CommandRadius = first.Radius;
+        }        
     }
 
     public void ToggleSelection(RobotViewModel robot)
@@ -53,6 +68,10 @@ public sealed class MainViewModel : ObservableObject
 
     // The ICommand for the Fit All button.
     public RelayCommand FitAllCommand { get; }
+
+    // The ICommand for the Apply button (in the Command panel).
+    public RelayCommand ApplyCommand { get; }
+
     public MainViewModel(IFeed feed)
     {
         _feed = feed;
@@ -62,6 +81,7 @@ public sealed class MainViewModel : ObservableObject
         _ = Task.Run(RunFeedAsync);
 
         FitAllCommand = new RelayCommand(FitAll);
+        ApplyCommand = new RelayCommand(Apply, () => SelectedRobots.Count > 0);
     }
 
     // ── DEFENSE-CRITICAL IDIOM 1: background-task stream reader ──────────────
@@ -243,5 +263,37 @@ public sealed class MainViewModel : ObservableObject
             (r.CanvasX, r.CanvasY) = WorldToCanvas(r.X, r.Y);
             RebuildTrail(r);
         }
+    }
+
+    private void Apply()
+    {
+        var cmd = new OperatorCommand
+        {
+            CommandId = Guid.NewGuid().ToString(),
+            Timestamp = Timestamp.FromDateTime(DateTime.UtcNow),          // UTC or it throws
+            Expiry    = Timestamp.FromDateTime(DateTime.UtcNow.AddSeconds(10)),
+        };
+        foreach (var r in SelectedRobots) cmd.Targets.Add(r.Id);
+
+        var sp = new SetParameters();
+        var first = SelectedRobots.FirstOrDefault();
+        if (first is not null)
+        {
+            if (CommandSpeed  != first.Speed)  sp.Speed  = CommandSpeed;    // set = present ("hazzer")
+            if (CommandRadius != first.Radius) sp.Radius = CommandRadius;
+        }
+        cmd.SetParameters = sp;
+
+        _ = SendAsync(cmd);          // kick off the send without blocking the click
+    }
+
+    private async Task SendAsync(OperatorCommand cmd)
+    {
+        try
+        {
+            var accepted = await _feed.SendCommand(cmd);
+            StatusText = $"cmd {cmd.CommandId[..8]} → accepted={accepted.Accepted_} {accepted.Detail}";
+        }
+        catch (Exception ex) { StatusText = $"send failed: {ex.Message}"; }
     }
 }

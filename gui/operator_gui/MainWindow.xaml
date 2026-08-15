@@ -15,6 +15,7 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="220" />    <!-- The left Roster panel -->
             <ColumnDefinition Width="*" />      <!-- The tactical region takes the rest -->
+            <ColumnDefinition Width="260" />    <!-- The command panel -->
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>      <!-- main content (your existing stuff stays in row 0) -->
@@ -54,7 +55,7 @@
             HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Padding="10,4" />
 
         <!-- Robot Status Count bar -->
-        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Background="#222">
+        <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Background="#222">
             <TextBlock Text="{Binding StatusText}"                           Foreground="White"     Margin="8,4"/>
             <TextBlock Text="{Binding LiveCount,  StringFormat='LIVE {0}'}"  Foreground="LimeGreen" Margin="8,4"/>
             <TextBlock Text="{Binding StaleCount, StringFormat='STALE {0}'}" Foreground="Gold"      Margin="8,4"/>
@@ -98,5 +99,18 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
+
+        <!-- The command panel -->
+        <StackPanel Grid.Column="2" Grid.Row="0" Margin="10" Background="#1a1a1a">
+            <TextBlock Text="COMMAND" FontWeight="Bold" Foreground="White" Margin="0,0,0,10"/>
+            <TextBlock Text="Speed (V)" Foreground="#ccc"/>
+            <TextBox Text="{Binding CommandSpeed}"/>
+            <TextBlock Text="Radius (R)" Foreground="#ccc" Margin="0,8,0,0"/>
+            <TextBox Text="{Binding CommandRadius}"/>
+            <Button Command="{Binding ApplyCommand}" Margin="0,12,0,0" Padding="8,4">
+                <TextBlock Text="{Binding SelectedRobots.Count, StringFormat='APPLY TO {0} ROBOT(S)'}"/>
+            </Button>
+        </StackPanel>
+
     </Grid>
 </Window>

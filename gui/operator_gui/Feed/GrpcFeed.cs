@@ -39,4 +39,12 @@ public sealed class GrpcFeed : IFeed
         await foreach (var frame in call.ResponseStream.ReadAllAsync(ct))
             yield return frame;
     }
+
+    public async Task<Accepted> SendCommand(OperatorCommand cmd)
+    {
+        using var channel = GrpcChannel.ForAddress(_address);
+        var client = new OperatorFeed.OperatorFeedClient(channel);
+        using var call = client.SendCommandAsync(cmd);
+        return await call.ResponseAsync;
+    }
 }

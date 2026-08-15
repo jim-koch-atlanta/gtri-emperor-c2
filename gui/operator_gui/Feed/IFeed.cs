@@ -15,4 +15,6 @@ namespace operator_gui.Feed;
 public interface IFeed
 {
     IAsyncEnumerable<SwarmState> Subscribe(CancellationToken ct);
+
+    Task<Accepted> SendCommand(OperatorCommand cmd);
 }

@@ -37,4 +37,7 @@ public sealed class FakeFeed : IFeed
             catch (OperationCanceledException) { yield break; }
         }
     }
+
+    public Task<Accepted> SendCommand(OperatorCommand cmd)
+        => Task.FromResult(new Accepted { CommandId = cmd.CommandId, Accepted_ = true, Detail = "fake (no-op)" });
 }
