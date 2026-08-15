@@ -1,0 +1,253 @@
+/* THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission. */
+/* Dark tactical theme. GitHub-dark-ish palette; monospace for the machine-y bits. */
+
+:root {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --panel-2: #10151c;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --live: #3fb950;
+  --stale: #d29922;
+  --lost: #f85149;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+}
+
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ---- status bar ---- */
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 14px;
+  height: 46px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+.brand { font-weight: 700; letter-spacing: 1px; }
+.brand-sub { font-weight: 400; color: var(--muted); font-size: 11px; letter-spacing: 0.5px; margin-left: 8px; }
+.counts { display: flex; gap: 16px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.statusbar .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.conn { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
+.conn-dot { width: 8px; height: 8px; border-radius: 50%; }
+.conn.ok { color: var(--live); }
+.conn.ok .conn-dot { background: var(--live); box-shadow: 0 0 6px var(--live); }
+.conn.bad { color: var(--lost); }
+.conn.bad .conn-dot { background: var(--lost); }
+
+button.ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+button.ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ---- body: leftcol | map | rightcol ---- */
+.body { display: flex; flex: 1 1 auto; min-height: 0; }
+
+.leftcol { flex: 0 0 250px; width: 250px; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--border); }
+.rightcol { flex: 0 0 264px; width: 264px; display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--border); }
+
+.panel {
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.roster { flex: 1 1 auto; min-height: 0; }
+.command { flex: 0 0 auto; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+
+/* ---- map layer toggles ---- */
+.layers { flex: 0 0 auto; background: var(--panel); border-top: 1px solid var(--border); padding-bottom: 8px; }
+.layer-row { display: flex; align-items: center; gap: 8px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
+.layer-row:hover { background: var(--panel-2); }
+.layer-row input { accent-color: var(--accent); cursor: pointer; margin: 0; }
+.swatch { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 auto; }
+.panel-title {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* map fills the middle */
+.map { flex: 1 1 auto; min-width: 0; position: relative; }
+
+/* ---- roster ---- */
+.roster-list { overflow-y: auto; }
+.roster-row {
+  display: grid;
+  grid-template-columns: 14px 54px 44px 1fr;
+  grid-template-areas: "dot rid status age" "dot rid params params";
+  align-items: center;
+  gap: 2px 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--panel-2);
+  cursor: pointer;
+}
+.roster-row:hover { background: var(--panel-2); }
+.roster-row.selected { background: #1f2937; box-shadow: inset 3px 0 0 var(--accent); }
+.dot { grid-area: dot; width: 10px; height: 10px; border-radius: 50%; }
+.rid { grid-area: rid; font-weight: 600; font-family: ui-monospace, monospace; }
+.rstatus { grid-area: status; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
+.rage { grid-area: age; font-size: 11px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.rparams { grid-area: params; font-size: 11px; color: var(--muted); }
+
+/* ---- command panel ---- */
+.sel-summary { padding: 12px; font-weight: 600; }
+.field { display: flex; flex-direction: column; gap: 4px; padding: 8px 12px; }
+.field span { font-size: 11px; color: var(--muted); }
+.field input {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  padding: 7px 9px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.field input:focus { outline: none; border-color: var(--accent); }
+.field input:disabled { opacity: 0.4; }
+button.apply {
+  margin: 10px 12px 0;
+  padding: 10px;
+  background: var(--accent);
+  color: #05121f;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+button.apply:disabled { background: var(--border); color: var(--muted); cursor: default; }
+
+/* ---- command strip ---- */
+.strip {
+  flex: 0 0 auto;
+  max-height: 132px;
+  overflow-y: auto;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  padding: 0 12px 8px;
+}
+.strip .panel-title { padding-left: 0; border-bottom: none; }
+.strip-rows { display: flex; flex-direction: column; gap: 5px; }
+.strip-row { display: flex; align-items: center; gap: 10px; }
+.cmd-id { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); min-width: 150px; }
+.cmd-targets { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: ui-monospace, monospace;
+}
+
+/* ---- status bar alarm badge ---- */
+.alarm { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: var(--lost); }
+.alarm-badge {
+  background: var(--lost); color: #0d1117; border-radius: 9px;
+  min-width: 18px; height: 18px; padding: 0 5px; display: inline-flex;
+  align-items: center; justify-content: center; font-size: 11px; font-weight: 800;
+  animation: alarm-pulse 1.2s infinite;
+}
+@keyframes alarm-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(248,81,73,0.6); } 50% { box-shadow: 0 0 0 4px rgba(248,81,73,0); } }
+
+/* ---- alert feed (right panel, below command) ---- */
+.alerts { flex: 1 1 auto; min-height: 0; }
+.alerts-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px 8px; border-bottom: 1px solid var(--border); }
+.alerts-title { font-size: 10px; letter-spacing: 1.5px; color: var(--muted); }
+.alert-badge {
+  background: var(--lost); color: #0d1117; border-radius: 9px; padding: 0 6px;
+  font-size: 11px; font-weight: 800; height: 17px; display: inline-flex; align-items: center;
+}
+.ackall { margin-left: auto; }
+.alert-list { overflow-y: auto; flex: 1 1 auto; }
+.alert-empty { padding: 10px 12px; }
+.alert-row {
+  display: flex; align-items: stretch; gap: 8px; padding: 7px 12px 7px 0;
+  border-bottom: 1px solid var(--panel-2); cursor: pointer;
+}
+.alert-row:hover { background: var(--panel-2); }
+.alert-row.acked { opacity: 0.45; }
+.alert-bar { width: 3px; flex: 0 0 3px; border-radius: 0 2px 2px 0; }
+.alert-body { flex: 1 1 auto; min-width: 0; }
+.alert-msg { font-size: 12px; line-height: 1.3; }
+.alert-row.sev-critical .alert-msg { font-weight: 700; }
+.alert-meta { font-size: 10px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.ack-btn {
+  align-self: center; background: transparent; color: var(--muted);
+  border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px;
+  font-size: 10px; font-weight: 700; cursor: pointer; margin-right: 10px;
+}
+.ack-btn:hover { color: var(--text); border-color: var(--accent); }
+
+/* ---- critical robot dot flash (unacked critical alert) ---- */
+.robot-marker.critical .marker-dot { animation: marker-flash 0.9s infinite; }
+@keyframes marker-flash {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(248, 81, 73, 0.95), 0 0 9px 3px rgba(248, 81, 73, 0.7); }
+  50% { box-shadow: 0 0 0 6px rgba(248, 81, 73, 0.15), 0 0 16px 6px rgba(248, 81, 73, 0.25); }
+}
+
+/* ---- misc ---- */
+.muted { color: var(--muted); }
+.muted.small { font-size: 11px; margin-top: 4px; font-weight: 400; }
+
+/* ---- robot markers (DOM, over the map canvas) ---- */
+/* MUST stay position:absolute — MapLibre positions markers by transform out of
+   normal flow. A `position: relative` here (our stylesheet loads after MapLibre's,
+   same specificity) drops them back INTO flow, so they stack vertically and each
+   renders offset south by the height of the markers above it. Kept absolute; the
+   absolutely-positioned .marker-label still anchors to this element. */
+.robot-marker { position: absolute; width: 16px; height: 16px; cursor: pointer; }
+.marker-dot {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #0d1117;
+  box-sizing: border-box;
+  transition: box-shadow 0.1s;
+}
+.robot-marker:hover .marker-dot { box-shadow: 0 0 0 3px rgba(230, 237, 243, 0.25); }
+.robot-marker.selected .marker-dot {
+  border-color: #e6edf3;
+  box-shadow: 0 0 0 3px rgba(230, 237, 243, 0.5);
+}
+.marker-label {
+  position: absolute;
+  top: 17px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #e6edf3;
+  white-space: nowrap;
+  text-shadow: 0 0 3px #0d1117, 0 0 3px #0d1117, 0 0 3px #0d1117;
+  pointer-events: none;
+}
+
+/* MapLibre control chrome, toned to the dark theme */
+.maplibregl-ctrl-attrib { background: rgba(13, 17, 23, 0.7) !important; color: var(--muted); }
+.maplibregl-ctrl-attrib a { color: var(--muted); }
