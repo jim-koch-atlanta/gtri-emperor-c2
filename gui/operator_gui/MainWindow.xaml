@@ -158,12 +158,23 @@
         </Border>
 
         <!-- Robot Status Count bar -->
-        <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Orientation="Horizontal" Background="#222">
-            <TextBlock Text="{Binding StatusText}"                           Foreground="White"     Margin="8,4"/>
-            <TextBlock Text="{Binding LiveCount,  StringFormat='LIVE {0}'}"  Foreground="LimeGreen" Margin="8,4"/>
-            <TextBlock Text="{Binding StaleCount, StringFormat='STALE {0}'}" Foreground="Gold"      Margin="8,4"/>
-            <TextBlock Text="{Binding LostCount,  StringFormat='LOST {0}'}"  Foreground="Red"       Margin="8,4"/>
-        </StackPanel>
+        <Border Grid.Row="2" Grid.ColumnSpan="3"
+                Background="{StaticResource Brush.Panel}"
+                BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,1,0,0">
+            <DockPanel LastChildFill="False" Margin="12,7">
+                <TextBlock DockPanel.Dock="Left" Text="SWARM C2" FontWeight="Bold"
+                           Foreground="{StaticResource Brush.Text}" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                <TextBlock DockPanel.Dock="Left" Text="{Binding StatusText}"
+                           Foreground="{StaticResource Brush.Muted}" FontSize="11" VerticalAlignment="Center"/>
+
+                <TextBlock DockPanel.Dock="Right" Text="{Binding LostCount,  StringFormat='LOST {0}'}"
+                           Foreground="{StaticResource Brush.Lost}"  FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding StaleCount, StringFormat='STALE {0}'}"
+                           Foreground="{StaticResource Brush.Stale}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding LiveCount,  StringFormat='LIVE {0}'}"
+                           Foreground="{StaticResource Brush.Live}"  FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            </DockPanel>
+        </Border>
         <ItemsControl Grid.Column="1" ItemsSource="{Binding Robots}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
