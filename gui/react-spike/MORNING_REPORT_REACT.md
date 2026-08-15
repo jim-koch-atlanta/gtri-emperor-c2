@@ -262,6 +262,20 @@ Open `http://localhost:5173`. The top-right badge shows the seam: **FAKE** vs
    1's "circle layers don't render" note — the real culprit was the GeoJSON worker,
    not the layer type. DOM markers for the dots are still the right call at this
    scale.)
+9. **`position: relative` on a MapLibre marker element silently breaks all marker
+   positions** (found by Jim in review). Our marker CSS used
+   `.robot-marker { position: relative }` (to anchor the label child). But our
+   stylesheet loads *after* MapLibre's, same specificity, so it overrode
+   MapLibre's required `.maplibregl-marker { position: absolute }`. Relative markers
+   stay in normal flow and **stack vertically**, so each robot rendered offset
+   *south* by the height of the markers above it (R-01 ≈ 0 px, the 6th robot
+   ≈ 80 px) — invisible at high zoom, glaring zoomed out, and it makes robots
+   *look* outside the fence when their data says inside (the alerts, which read the
+   data, were correct all along). Fix: `.robot-marker { position: absolute }`. The
+   diagnosis that nailed it: log `map.project(lngLat)` vs the marker's real
+   `getBoundingClientRect()` — the transform matched the projection but the element
+   still landed 80 px low, which points at flow, not projection. (A single marker
+   hides this — you need several to see the stack.)
 8. **First-sighting-outside is a design decision, not just a demo hack.** The
    headless capture window is ~1.5 s, far too short to reliably *witness* an
    inside→outside transition. That forced a good question: should the AlertEngine

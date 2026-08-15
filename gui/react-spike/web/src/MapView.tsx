@@ -145,6 +145,12 @@ export function MapView({ frame, trailsRef, selected, basemap, fitNonce, layerVi
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
 
+    // Keep the map's drawing buffer in lockstep with its (flex-sized) container so
+    // it stays correct when the window resizes. (MapLibre tracks this itself too;
+    // this is belt-and-suspenders.)
+    const ro = new ResizeObserver(() => map.resize());
+    ro.observe(containerRef.current);
+
     map.on("load", () => {
       // ---- mission geometry (UNDER the robots): fills first, bold fence on top
       map.addSource("mission-inputs", { type: "geojson", data: fence.inputs });
@@ -193,6 +199,7 @@ export function MapView({ frame, trailsRef, selected, basemap, fitNonce, layerVi
     });
 
     return () => {
+      ro.disconnect();
       markersRef.current.forEach((m) => m.remove());
       markersRef.current.clear();
       map.remove();

@@ -214,7 +214,12 @@ button.apply:disabled { background: var(--border); color: var(--muted); cursor: 
 .muted.small { font-size: 11px; margin-top: 4px; font-weight: 400; }
 
 /* ---- robot markers (DOM, over the map canvas) ---- */
-.robot-marker { position: relative; width: 16px; height: 16px; cursor: pointer; }
+/* MUST stay position:absolute — MapLibre positions markers by transform out of
+   normal flow. A `position: relative` here (our stylesheet loads after MapLibre's,
+   same specificity) drops them back INTO flow, so they stack vertically and each
+   renders offset south by the height of the markers above it. Kept absolute; the
+   absolutely-positioned .marker-label still anchors to this element. */
+.robot-marker { position: absolute; width: 16px; height: 16px; cursor: pointer; }
 .marker-dot {
   display: block;
   width: 16px;
