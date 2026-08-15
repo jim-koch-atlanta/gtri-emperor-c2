@@ -16,6 +16,10 @@ public sealed class MainViewModel : ObservableObject
 
     public ObservableCollection<RobotViewModel> Robots { get; } = new();
 
+    // View Models for sent commands.
+    public ObservableCollection<CommandStatusViewModel> Commands { get; } = new();
+    private readonly Dictionary<string, CommandStatusViewModel> _cmdById = new();
+
     private string _StatusText = "starting…";
     public string StatusText { get => _StatusText; private set => SetField(ref _StatusText, value); }
 
@@ -196,6 +200,25 @@ public sealed class MainViewModel : ObservableObject
         LiveCount = live;
         StaleCount = stale;
         LostCount = lost;
+
+        foreach (var cs in frame.Commands)
+        {
+            if (!_cmdById.TryGetValue(cs.CommandId, out var cvm))
+            {
+                cvm = new CommandStatusViewModel(cs.CommandId);
+                _cmdById[cs.CommandId] = cvm;
+                Commands.Insert(0, cvm);          // newest on top
+            }
+
+            // upsert the per-target chips, updating their state each frame (this is what
+            // makes PENDING→SENT→APPLIED animate)
+            foreach (var ts in cs.Targets)
+            {
+                var chip = cvm.Targets.FirstOrDefault(t => t.RobotId == ts.RobotId);
+                if (chip is null) { chip = new TargetStatusViewModel(ts.RobotId); cvm.Targets.Add(chip); }
+                chip.State = CmdStateLabel(ts.State);
+            }
+        }
     }
 
     // Unchanged seam from the spike — identity today. Scale/offset + Fit All is
@@ -223,6 +246,17 @@ public sealed class MainViewModel : ObservableObject
         LinkStatus.LinkLive => "LIVE",
         LinkStatus.LinkStale => "STALE",
         LinkStatus.LinkLost => "LOST",
+        _ => "?",
+    };
+
+    private static string CmdStateLabel(CommandState s) => s switch
+    {
+        CommandState.CmdPending      => "PENDING",
+        CommandState.CmdSent         => "SENT",
+        CommandState.CmdApplied      => "APPLIED",
+        CommandState.CmdRejected     => "REJECTED",
+        CommandState.CmdExpired      => "EXPIRED",
+        CommandState.CmdRobotOffline => "OFFLINE",
         _ => "?",
     };
 
