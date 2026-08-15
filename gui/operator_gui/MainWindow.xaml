@@ -8,8 +8,9 @@
         mc:Ignorable="d"
         Title="{Binding StatusText}" Height="450" Width="800">
     <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-        <local:StatusToBrushConverter x:Key="StatusToBrush"/>
+        <BooleanToVisibilityConverter   x:Key="BoolToVis"/>
+        <local:StatusToBrushConverter   x:Key="StatusToBrush"/>
+        <local:CmdStateToBrushConverter x:Key="CmdStateToBrush"/>
     </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -19,6 +20,7 @@
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>      <!-- main content (your existing stuff stays in row 0) -->
+            <RowDefinition Height="140"/>    <!-- command status bar -->
             <RowDefinition Height="Auto"/>   <!-- status bar sizes to content -->
         </Grid.RowDefinitions>
         <ListBox
@@ -54,8 +56,40 @@
             Content="Fit All" Command="{Binding FitAllCommand}"
             HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Padding="10,4" />
 
+        <ScrollViewer Grid.Row="1" Grid.ColumnSpan="3" VerticalScrollBarVisibility="Auto" Background="#151515">
+            <ItemsControl ItemsSource="{Binding Commands}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <!-- One Command row -->
+                        <StackPanel Orientation="Horizontal" Margin="6,3">
+                            <TextBlock Text="{Binding ShortId}" Foreground="#aaa" Width="72" FontFamily="Consolas"/>
+
+                            <!-- For each command, the per-Target chips -->
+                            <ItemsControl ItemsSource="{Binding Targets}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <!-- One Chip, colored by state -->
+                                        <Border CornerRadius="3" Margin="2,0" Padding="5,1"
+                                                Background="{Binding State, Converter={StaticResource CmdStateToBrush}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding RobotId}" Foreground="White" FontSize="11"/>
+                                                <TextBlock Text="{Binding State}"   Foreground="White" FontSize="11" Margin="4,0,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
         <!-- Robot Status Count bar -->
-        <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Background="#222">
+        <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Orientation="Horizontal" Background="#222">
             <TextBlock Text="{Binding StatusText}"                           Foreground="White"     Margin="8,4"/>
             <TextBlock Text="{Binding LiveCount,  StringFormat='LIVE {0}'}"  Foreground="LimeGreen" Margin="8,4"/>
             <TextBlock Text="{Binding StaleCount, StringFormat='STALE {0}'}" Foreground="Gold"      Margin="8,4"/>
