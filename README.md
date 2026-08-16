@@ -10,9 +10,7 @@
 
 ## Screenshot
 
-![Operator GUI — live swarm](gui/operator_gui/polish_preview.png)
-
-> **TODO (Jim):** `polish_preview.png` shows the polished layout (roster · tactical view · command panel · command-status strip, dark theme) but the robots are static (V 0 / R 0). Recapture against a **live 6-robot swarm** — dots circling, roster populated with real speed/radius/age, and a command's chips walking PENDING→SENT→APPLIED in the strip — and drop it in here.
+![Operator GUI — live swarm](gui/operator_gui/operator_gui_screenshot.png)
 
 ---
 
