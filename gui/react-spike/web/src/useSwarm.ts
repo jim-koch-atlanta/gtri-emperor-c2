@@ -32,6 +32,7 @@ export function useSwarm() {
   });
   const trailsRef = useRef<Trails>(new Map());
   const wsRef = useRef<WebSocket | null>(null);
+  const cmdSeqRef = useRef(0);
 
   useEffect(() => {
     let closed = false;
@@ -77,11 +78,15 @@ export function useSwarm() {
     };
   }, []);
 
-  const sendCommand = useCallback((intent: CommandIntent) => {
+  // Mint a correlation id here so the caller (audit log) knows it immediately,
+  // instead of racing the bridge's ack. The bridge honors a supplied command_id.
+  const sendCommand = useCallback((intent: CommandIntent): string => {
+    const command_id = intent.command_id ?? `web-${Date.now().toString(36)}-${cmdSeqRef.current++}`;
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: "command", intent }));
+      ws.send(JSON.stringify({ type: "command", intent: { ...intent, command_id } }));
     }
+    return command_id;
   }, []);
 
   return { frame, status, trailsRef, sendCommand };

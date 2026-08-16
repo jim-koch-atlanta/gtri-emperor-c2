@@ -16,9 +16,10 @@
 
 import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
+import ms from "milsymbol";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { FeatureCollection } from "geojson";
-import type { SwarmState } from "./types";
+import type { SwarmState, Telemetry } from "./types";
 import type { Trails } from "./useSwarm";
 import { metersToLonLat } from "./geo";
 import { STATUS_COLOR, FENCE_UNION_COLOR, INPUT_COLOR, BUFFER_COLOR } from "./viz";
@@ -26,10 +27,34 @@ import { fence } from "./mission";
 
 const HEADING_TICK_M = 35; // length of the heading indicator, in world metres
 
+// ---- MIL-STD-2525 symbology (milsymbol) ---------------------------------
+// The swarm is friendly, air, unmanned (UAV) — SIDC 2525C: S(warfighting)
+// F(riend) A(ir) P(resent) MFQ(=UAV function). One glyph for all six; the robot
+// id rides the existing text label below, so the symbol stays clean. We reflect
+// link health natively: LOST gets a red status halo, STALE is drawn dimmed (see
+// CSS). Cached by link_status — only three distinct SVGs are ever generated.
+const UAS_SIDC = "SFAPMFQ--------";
+const symCache = new Map<string, string>();
+function milIcon(link: string): string {
+  const cached = symCache.get(link);
+  if (cached) return cached;
+  const opts: Record<string, unknown> = { size: 24, frame: true, fill: true };
+  if (link === "LINK_LOST") { opts.outlineColor = "#f85149"; opts.outlineWidth = 6; }
+  const svg = new ms.Symbol(UAS_SIDC, opts).asSVG();
+  symCache.set(link, svg);
+  return svg;
+}
+
 export interface LayerVisibility {
   mission: boolean; // the union geofence (fill + bold outline)
   buffers: boolean; // component buffers (launch / route / roi)
   inputs: boolean; // the raw mission inputs (dashed)
+}
+
+export interface SaVisibility {
+  symbols: boolean; // MIL-STD-2525 symbols instead of dots
+  orbit: boolean; // predicted-orbit dashed circle for selected robots
+  ghost: boolean; // coasting ghost for STALE/LOST robots
 }
 
 // Data-driven color for the component buffers, keyed on their fixture name.
@@ -72,6 +97,7 @@ interface Props {
   basemap: "osm" | "dark";
   fitNonce: number;
   layerVis: LayerVisibility;
+  saVis: SaVisibility;
   criticalRobots: Set<string>; // robots with unacked critical alerts -> flash
   breachPulseNonce: number; // bumped on each new breach -> pulse the fence
   flyTo: { robotId: string; nonce: number } | null; // alert click -> fly to robot
@@ -79,10 +105,13 @@ interface Props {
   onClearSelection: () => void;
 }
 
-export function MapView({ frame, trailsRef, selected, basemap, fitNonce, layerVis, criticalRobots, breachPulseNonce, flyTo, onSelect, onClearSelection }: Props) {
+export function MapView({ frame, trailsRef, selected, basemap, fitNonce, layerVis, saVis, criticalRobots, breachPulseNonce, flyTo, onSelect, onClearSelection }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
+  const ghostsRef = useRef<Map<string, maplibregl.Marker>>(new Map());
+  const prevLinkRef = useRef<Map<string, string>>(new Map()); // last link_status per robot
+  const lostFrozenRef = useRef<Map<string, [number, number]>>(new Map()); // ghost pos frozen at STALE->LOST
   const readyRef = useRef(false);
 
   // Keep latest callbacks/state in refs so map + marker handlers, registered once,
@@ -97,7 +126,7 @@ export function MapView({ frame, trailsRef, selected, basemap, fitNonce, layerVi
   basemapRef.current = basemap;
 
   // Create-or-update a DOM marker per robot; drop markers for robots that left.
-  const syncMarkers = (map: maplibregl.Map, f: SwarmState | null, sel: Set<string>, critical: Set<string>) => {
+  const syncMarkers = (map: maplibregl.Map, f: SwarmState | null, sel: Set<string>, critical: Set<string>, symbols: boolean) => {
     const markers = markersRef.current;
     const seen = new Set<string>();
     for (const r of f?.robots ?? []) {
@@ -108,7 +137,7 @@ export function MapView({ frame, trailsRef, selected, basemap, fitNonce, layerVi
       if (!m) {
         const el = document.createElement("div");
         el.className = "robot-marker";
-        el.innerHTML = `<span class="marker-dot"></span><span class="marker-label"></span>`;
+        el.innerHTML = `<span class="marker-dot"></span><span class="marker-symbol"></span><span class="marker-label"></span>`;
         (el.querySelector(".marker-label") as HTMLElement).textContent = id;
         el.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -121,6 +150,17 @@ export function MapView({ frame, trailsRef, selected, basemap, fitNonce, layerVi
       }
       const el = m.getElement();
       (el.querySelector(".marker-dot") as HTMLElement).style.background = STATUS_COLOR[r.link_status];
+      // 2525 mode: swap the dot for the milsymbol glyph, redrawn only when the
+      // link_status (hence the cached SVG) actually changes. STALE dims via CSS.
+      el.classList.toggle("symbols", symbols);
+      el.classList.toggle("dim", symbols && r.link_status === "LINK_STALE");
+      if (symbols) {
+        const sym = el.querySelector(".marker-symbol") as HTMLElement;
+        if (sym.dataset.key !== r.link_status) {
+          sym.innerHTML = milIcon(r.link_status);
+          sym.dataset.key = r.link_status;
+        }
+      }
       el.classList.toggle("selected", sel.has(id));
       el.classList.toggle("critical", critical.has(id)); // flash on unacked critical alert
     }
@@ -128,6 +168,67 @@ export function MapView({ frame, trailsRef, selected, basemap, fitNonce, layerVi
       if (!seen.has(id)) {
         m.remove();
         markers.delete(id);
+      }
+    }
+  };
+
+  // Coasting ghost: for a STALE/LOST robot, project where it WOULD be if it kept
+  // orbiting, from its last-known (frozen) telemetry. STALE = moving dashed ghost
+  // with a "last seen" age; LOST = freeze the ghost where it was and turn it red;
+  // recovery (down -> LIVE) = drop the ghost and flash the real dot. Honest label:
+  // "proj" — this is dead reckoning off a known motion model, not truth.
+  const syncGhosts = (map: maplibregl.Map, f: SwarmState | null, show: boolean) => {
+    const ghosts = ghostsRef.current;
+    const seen = new Set<string>();
+    for (const r of f?.robots ?? []) {
+      const id = r.telemetry.robot_id;
+      const cur = r.link_status;
+      const prev = prevLinkRef.current.get(id);
+
+      // recovery: link came back — flash the real marker, drop any frozen ghost.
+      if (cur === "LINK_LIVE" && (prev === "LINK_STALE" || prev === "LINK_LOST")) {
+        const rm = markersRef.current.get(id);
+        if (rm) {
+          const rel = rm.getElement();
+          rel.classList.add("recovered");
+          setTimeout(() => rel.classList.remove("recovered"), 1200);
+        }
+        lostFrozenRef.current.delete(id);
+      }
+      prevLinkRef.current.set(id, cur);
+
+      const down = cur === "LINK_STALE" || cur === "LINK_LOST";
+      if (!show || !down) continue;
+      seen.add(id);
+
+      let posM: [number, number];
+      if (cur === "LINK_LOST") {
+        if (prev === "LINK_STALE") lostFrozenRef.current.set(id, ghostPosMeters(r.telemetry, r.age_ms));
+        posM = lostFrozenRef.current.get(id) ?? ghostPosMeters(r.telemetry, r.age_ms);
+      } else {
+        posM = ghostPosMeters(r.telemetry, r.age_ms); // STALE — keep extrapolating
+      }
+
+      const lngLat = metersToLonLat(posM[0], posM[1]);
+      let g = ghosts.get(id);
+      if (!g) {
+        const el = document.createElement("div");
+        el.className = "ghost-marker";
+        el.innerHTML = `<span class="ghost-dot"></span><span class="ghost-label"></span>`;
+        g = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat(lngLat).addTo(map);
+        ghosts.set(id, g);
+      } else {
+        g.setLngLat(lngLat);
+      }
+      const el = g.getElement();
+      el.classList.toggle("lost", cur === "LINK_LOST");
+      (el.querySelector(".ghost-label") as HTMLElement).textContent =
+        cur === "LINK_LOST" ? `${id} LOST · proj` : `proj · last seen ${(r.age_ms / 1000).toFixed(1)}s`;
+    }
+    for (const [id, g] of ghosts) {
+      if (!seen.has(id)) {
+        g.remove();
+        ghosts.delete(id);
       }
     }
   };
@@ -164,9 +265,15 @@ export function MapView({ frame, trailsRef, selected, basemap, fitNonce, layerVi
       map.addLayer({ id: "mission-inputs-point", type: "circle", source: "mission-inputs", filter: ["==", ["geometry-type"], "Point"], paint: { "circle-radius": 4, "circle-color": INPUT_COLOR, "circle-stroke-color": "#0d1117", "circle-stroke-width": 1.5 } });
       map.addLayer({ id: "mission-union-line", type: "line", source: "mission-union", paint: { "line-color": FENCE_UNION_COLOR, "line-width": 3, "line-opacity": 1 } });
 
-      for (const id of ["trails", "headings"]) {
+      for (const id of ["orbits", "trails", "headings"]) {
         map.addSource(id, { type: "geojson", data: emptyFC() });
       }
+      map.addLayer({
+        id: "orbits-line",
+        type: "line",
+        source: "orbits",
+        paint: { "line-color": "#58a6ff", "line-width": 1.5, "line-opacity": 0.85, "line-dasharray": [3, 3] },
+      });
       map.addLayer({
         id: "trails-line",
         type: "line",
@@ -189,7 +296,8 @@ export function MapView({ frame, trailsRef, selected, basemap, fitNonce, layerVi
       map.setLayoutProperty("osm", "visibility", basemapRef.current === "osm" ? "visible" : "none");
       readyRef.current = true;
       redrawLines(map, frameRef.current, trailsRef.current);
-      syncMarkers(map, frameRef.current, selected, criticalRobots);
+      syncMarkers(map, frameRef.current, selected, criticalRobots, saVis.symbols);
+      syncGhosts(map, frameRef.current, saVis.ghost);
     });
 
     // Click on empty canvas clears selection (marker clicks stopPropagation).
@@ -202,6 +310,8 @@ export function MapView({ frame, trailsRef, selected, basemap, fitNonce, layerVi
       ro.disconnect();
       markersRef.current.forEach((m) => m.remove());
       markersRef.current.clear();
+      ghostsRef.current.forEach((g) => g.remove());
+      ghostsRef.current.clear();
       map.remove();
       mapRef.current = null;
       readyRef.current = false;
@@ -213,14 +323,18 @@ export function MapView({ frame, trailsRef, selected, basemap, fitNonce, layerVi
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    if (readyRef.current) redrawLines(map, frame, trailsRef.current);
-    syncMarkers(map, frame, selected, criticalRobots);
+    if (readyRef.current) {
+      redrawLines(map, frame, trailsRef.current);
+      redrawOrbits(map, frame, selected, saVis.orbit);
+    }
+    syncMarkers(map, frame, selected, criticalRobots, saVis.symbols);
+    syncGhosts(map, frame, saVis.ghost);
     // No auto-fit: the map opens framed on the fixed McMurdo mission extent (set
     // in the constructor). Fit All reframes to the live swarm on demand. (A
     // fitBounds camera move also breaks headless screenshot capture of the GeoJSON
     // layers — see MORNING_REPORT — so a static initial view is doubly right here.)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [frame, selected, criticalRobots]);
+  }, [frame, selected, criticalRobots, saVis]);
 
   // ---- basemap toggle -----------------------------------------------------
   useEffect(() => {
@@ -326,4 +440,42 @@ function fitAll(map: maplibregl.Map, frame: SwarmState, duration = 600) {
   const b = new maplibregl.LngLatBounds();
   for (const r of frame.robots) b.extend(metersToLonLat(r.telemetry.x, r.telemetry.y));
   map.fitBounds(b, { padding: 90, maxZoom: 17, duration });
+}
+
+// The circle a robot WILL trace: centre = position - R*(outward), where the
+// outward radial is (sin h, -cos h) since heading = orbit-phase + pi/2.
+function orbitCenterMeters(x: number, y: number, radius: number, heading: number): [number, number] {
+  return [x - radius * Math.sin(heading), y + radius * Math.cos(heading)];
+}
+
+// Dead-reckon the coasting position: advance the last-known orbit phase by the
+// known angular rate (omega = V/R) over the telemetry age. Pure motion-model
+// projection off frozen telemetry.
+function ghostPosMeters(t: Telemetry, ageMs: number): [number, number] {
+  const [cx, cy] = orbitCenterMeters(t.x, t.y, t.radius, t.heading);
+  const omega = t.radius > 0 ? t.speed / t.radius : 0;
+  const phi = t.heading - Math.PI / 2 + omega * (ageMs / 1000);
+  return [cx + t.radius * Math.cos(phi), cy + t.radius * Math.sin(phi)];
+}
+
+function circleLonLat(cx: number, cy: number, R: number, n = 64): [number, number][] {
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= n; i++) {
+    const a = (i / n) * 2 * Math.PI;
+    pts.push(metersToLonLat(cx + R * Math.cos(a), cy + R * Math.sin(a)));
+  }
+  return pts;
+}
+
+function redrawOrbits(map: maplibregl.Map, frame: SwarmState | null, selected: Set<string>, show: boolean) {
+  const fc: FeatureCollection = { type: "FeatureCollection", features: [] };
+  if (show && frame) {
+    for (const r of frame.robots) {
+      const t = r.telemetry;
+      if (!selected.has(t.robot_id) || t.radius <= 0) continue;
+      const [cx, cy] = orbitCenterMeters(t.x, t.y, t.radius, t.heading);
+      fc.features.push({ type: "Feature", geometry: { type: "LineString", coordinates: circleLonLat(cx, cy, t.radius) }, properties: {} });
+    }
+  }
+  (map.getSource("orbits") as maplibregl.GeoJSONSource | undefined)?.setData(fc);
 }

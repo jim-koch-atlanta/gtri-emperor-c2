@@ -1,9 +1,8 @@
 // THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission.
 //
-// Top status bar. Glanceable swarm health (LIVE/STALE/LOST counts) — the seed of
-// exception-based supervision (§9) — plus the connection state, which here also
-// tells you WHICH client seam you're looking at: a browser talking to the bridge,
-// talking to the same C2 server the WPF client uses.
+// Top status bar. Glanceable swarm health (LIVE/STALE/LOST counts) plus the
+// connection state (which client seam you're looking at). Round 3 adds an
+// unmissable red ALL-STOP (command authority) and a 2525 symbology toggle.
 
 import type { RobotState } from "./types";
 import type { SwarmStatus } from "./useSwarm";
@@ -14,11 +13,14 @@ interface Props {
   status: SwarmStatus;
   basemap: "osm" | "dark";
   unackedCount: number;
+  symbology: boolean;
+  onAllStop: () => void;
+  onToggleSymbology: () => void;
   onToggleBasemap: () => void;
   onFitAll: () => void;
 }
 
-export function StatusBar({ robots, status, basemap, unackedCount, onToggleBasemap, onFitAll }: Props) {
+export function StatusBar({ robots, status, basemap, unackedCount, symbology, onAllStop, onToggleSymbology, onToggleBasemap, onFitAll }: Props) {
   const live = robots.filter((r) => r.link_status === "LINK_LIVE").length;
   const stale = robots.filter((r) => r.link_status === "LINK_STALE").length;
   const lost = robots.filter((r) => r.link_status === "LINK_LOST").length;
@@ -33,6 +35,9 @@ export function StatusBar({ robots, status, basemap, unackedCount, onToggleBasem
   return (
     <div className="statusbar">
       <div className="brand">SWARM&nbsp;C2 <span className="brand-sub">react/maplibre spike</span></div>
+      <button className="allstop" onClick={onAllStop} disabled={robots.length === 0} title="Stop all robots (speed → 0)">
+        ⬛ ALL-STOP
+      </button>
       <div className="counts">
         <span style={{ color: STATUS_COLOR.LINK_LIVE }}>{live} LIVE</span>
         <span style={{ color: STATUS_COLOR.LINK_STALE }}>{stale} STALE</span>
@@ -44,6 +49,7 @@ export function StatusBar({ robots, status, basemap, unackedCount, onToggleBasem
         </div>
       )}
       <div className="right">
+        <button className={`ghost${symbology ? " on" : ""}`} onClick={onToggleSymbology} title="MIL-STD-2525 symbols">2525</button>
         <button className="ghost" onClick={onFitAll}>Fit All</button>
         <button className="ghost" onClick={onToggleBasemap}>Basemap: {basemap === "osm" ? "OSM" : "Dark"}</button>
         <span className={`conn ${linkOk ? "ok" : "bad"}`} title={status.detail}>

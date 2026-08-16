@@ -100,7 +100,7 @@ export class GrpcSource implements Source {
   sendCommand(intent: CommandIntent): Promise<Accepted> {
     const now = Date.now();
     const command: any = {
-      command_id: `op-${now}-${this.commandSeq++}`,
+      command_id: intent.command_id ?? `op-${now}-${this.commandSeq++}`,
       timestamp: toProtoTimestamp(now),
       expiry: toProtoTimestamp(now + COMMAND_EXPIRY_MS),
       targets: intent.targets,

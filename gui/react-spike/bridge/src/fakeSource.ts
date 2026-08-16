@@ -28,8 +28,14 @@ interface FakeRobot {
   R: number;
   V: number;
   theta0: number;
-  frozen: boolean; // stands in for a STALE link — position stops updating
+  frozen: boolean; // permanent STALE link — position stops updating
+  cycle?: boolean; // scripted LIVE -> STALE -> LOST -> recover link-loss loop
 }
+
+// R-06's scripted link-loss cycle (seconds), so the coasting-ghost lifecycle
+// (moving ghost -> frozen red ghost -> snap+flash on recovery) is fully demoable.
+const CYCLE = { live: 9, stale: 6, lost: 4 };
+const CYCLE_PERIOD = CYCLE.live + CYCLE.stale + CYCLE.lost;
 
 interface TargetProgress {
   robot_id: string;
@@ -68,7 +74,7 @@ export class FakeSource implements Source {
       { id: "R-03", cx: 700, cy: 600, R: 95, V: 16, theta0: 2.2, frozen: false }, // ROI (breach demo)
       { id: "R-04", cx: 500, cy: 420, R: 70, V: 12, theta0: 3.3, frozen: false }, // corridor→ROI
       { id: "R-05", cx: 760, cy: 560, R: 65, V: 9, theta0: 4.4, frozen: false }, // ROI
-      { id: "R-06", cx: 140, cy: 90, R: 70, V: 13, theta0: 5.5, frozen: true }, // launch (STALE)
+      { id: "R-06", cx: 140, cy: 90, R: 70, V: 13, theta0: 5.5, frozen: false, cycle: true }, // launch (link-loss demo)
     ];
   }
 
@@ -97,27 +103,7 @@ export class FakeSource implements Source {
     this.elapsed += DT;
     this.advanceCommands();
 
-    const robots: RobotState[] = this.robots.map((r) => {
-      // A frozen (STALE) robot holds its last-known position — the link is dead,
-      // so no new telemetry advances it. Live robots orbit off elapsed time.
-      const phi = r.frozen ? r.theta0 : (r.V / r.R) * this.elapsed + r.theta0;
-      const x = r.cx + r.R * Math.cos(phi);
-      const y = r.cy + r.R * Math.sin(phi);
-      return {
-        telemetry: {
-          robot_id: r.id,
-          seq: this.seq,
-          x,
-          y,
-          heading: phi + Math.PI / 2,
-          speed: r.V,
-          radius: r.R,
-        },
-        link_status: r.frozen ? "LINK_STALE" : "LINK_LIVE",
-        // Frozen robot's age climbs; live robots get a small jittery-but-fixed age.
-        age_ms: r.frozen ? Math.round(2000 + this.elapsed * 1000) : 60,
-      };
-    });
+    const robots: RobotState[] = this.robots.map((r) => this.robotState(r));
 
     const commands: CommandStatus[] = this.commands.map((c) => ({
       command_id: c.command_id,
@@ -129,6 +115,47 @@ export class FakeSource implements Source {
     }));
 
     this.frameCb({ seq: this.seq++, robots, commands });
+  }
+
+  // Build one robot's RobotState for this tick. Live robots orbit off elapsed
+  // time; a permanently-frozen robot holds still; a cycling robot follows the
+  // scripted link-loss loop (LIVE -> STALE -> LOST -> recover), reporting its
+  // LAST-KNOWN position (frozen at stale-onset) while its link is down so the
+  // client's coasting ghost has something to extrapolate from.
+  private robotState(r: FakeRobot): RobotState {
+    const omega = r.V / r.R;
+    let phi = omega * this.elapsed + r.theta0;
+    let link: RobotState["link_status"] = "LINK_LIVE";
+    let ageMs = 60;
+
+    if (r.frozen) {
+      phi = r.theta0;
+      link = "LINK_STALE";
+      ageMs = Math.round(2000 + this.elapsed * 1000);
+    } else if (r.cycle) {
+      const ph = this.elapsed % CYCLE_PERIOD;
+      if (ph >= CYCLE.live) {
+        // Link down: freeze at the position held when it went stale.
+        const staleStart = this.elapsed - (ph - CYCLE.live);
+        phi = omega * staleStart + r.theta0;
+        link = ph < CYCLE.live + CYCLE.stale ? "LINK_STALE" : "LINK_LOST";
+        ageMs = Math.round((ph - CYCLE.live) * 1000);
+      }
+    }
+
+    return {
+      telemetry: {
+        robot_id: r.id,
+        seq: this.seq,
+        x: r.cx + r.R * Math.cos(phi),
+        y: r.cy + r.R * Math.sin(phi),
+        heading: phi + Math.PI / 2,
+        speed: r.V,
+        radius: r.R,
+      },
+      link_status: link,
+      age_ms: ageMs,
+    };
   }
 
   // Drive each command's per-target lifecycle one tick, apply params at APPLIED,
@@ -177,7 +204,7 @@ export class FakeSource implements Source {
   }
 
   sendCommand(intent: CommandIntent): Promise<Accepted> {
-    const command_id = `fake-${this.commandSeq++}`;
+    const command_id = intent.command_id ?? `fake-${this.commandSeq++}`;
     const targets: TargetProgress[] = intent.targets.map((robot_id) => {
       const r = this.robotById(robot_id);
       if (!r) {

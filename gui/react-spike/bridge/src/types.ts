@@ -63,6 +63,7 @@ export interface SwarmState {
 // this into a proto OperatorCommand: it mints the command_id, stamps timestamp
 // and expiry, and speaks gRPC. The browser never touches proto or clocks.
 export interface CommandIntent {
+  command_id?: string; // client may mint its own correlation id (round 3)
   targets: string[];
   params: {
     speed?: number;
