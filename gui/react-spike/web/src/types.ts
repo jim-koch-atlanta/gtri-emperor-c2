@@ -61,6 +61,7 @@ export interface SwarmState {
 }
 
 export interface CommandIntent {
+  command_id?: string; // client-minted correlation id (round 3)
   targets: string[];
   params: {
     speed?: number;
