@@ -144,6 +144,31 @@ public sealed class MainViewModel : ObservableObject
                 vm = new RobotViewModel(tel.RobotId);
                 _byId[tel.RobotId] = vm;
                 Robots.Add(vm);
+
+                // Set up the IsSelected property to be bi-directional.
+                vm.PropertyChanged += (s, a) =>
+                {
+                    if (a.PropertyName == nameof(RobotViewModel.IsSelected) && s is RobotViewModel r)
+                    {
+                        if (r.IsSelected)
+                        {
+                            if (!SelectedRobots.Contains(r))
+                                SelectedRobots.Add(r);
+                        }
+                        else {
+                            if (SelectedRobots.Contains(r))
+                            SelectedRobots.Remove(r);
+                        }
+                        
+                        // Update the Command panel
+                        var first = SelectedRobots.FirstOrDefault();
+                        if (first is not null) {
+                            CommandSpeed = first.Speed;
+                            CommandRadius = first.Radius;
+                        }
+                    }
+                };
+
             }
 
             vm.X = tel.X;
@@ -160,24 +185,6 @@ public sealed class MainViewModel : ObservableObject
                 vm.WorldTrail.RemoveAt(0);
             }
             RebuildTrail(vm);
-
-            // Set up the IsSelected property to be bi-directional.
-            vm.PropertyChanged += (s, a) =>
-            {
-                if (a.PropertyName == nameof(RobotViewModel.IsSelected) && s is RobotViewModel r)
-                {
-                    if (r.IsSelected)
-                    {
-                        if (!SelectedRobots.Contains(r))
-                            SelectedRobots.Add(r);
-                    }
-                    else {
-                        if (SelectedRobots.Contains(r))
-                        SelectedRobots.Remove(r);
-                    }
-                    // Step 2 will also refresh the command panel here
-                }
-            };
         }
 
         StatusText = $"{Robots.Count} robots · {frame.Robots.Count} in frame";
