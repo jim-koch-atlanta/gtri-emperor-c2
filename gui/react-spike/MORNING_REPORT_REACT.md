@@ -324,9 +324,123 @@ Open `http://localhost:5173`. The top-right badge shows the seam: **FAKE** vs
 
 ---
 
+## Round 3 — Command authority & richer situational awareness
+
+A third vibe-coding pass, on throwaway branch `gui-spike-react-v2` (**not merged**;
+`master` keeps the round-2 state). Two themes: give the operator a real, guarded
+**command authority** control, and make the map *honest about uncertainty* when a
+link degrades. Everything below is still the spike's caveats — fixtures/fake mode,
+client-local state where noted, throwaway header on every new file.
+
+### Feature 1 — Command authority (lite)
+
+The round-2 client could retune one robot. Round 3 adds a swarm-wide safety action
+and the doctrine around issuing it.
+
+- **ALL-STOP** (`StatusBar.tsx`) — an unmissable red button, top bar. It issues a
+  **real** `SetParameters{speed: 0}` to **every** robot id, end-to-end through the
+  bridge and the same command path as any other command (fake mode walks it
+  PENDING→SENT→APPLIED; against the C++ server it's a real `OperatorCommand`).
+  Offline robots come back `ROBOT_OFFLINE` immediately, exactly like a single
+  command — no special-casing.
+- **Confirmation gate** (`ConfirmDialog.tsx`, `App.tsx`) — a **destructive-command
+  UX doctrine**: any command that is ALL-STOP *or* targets more than
+  `CONFIRM_ABOVE = 3` robots opens a modal stating the **explicit scope** (the
+  exact target ids and the parameter change) before it will send. Narrow commands
+  (≤3 targets) send immediately — the gate is proportional to blast radius, not a
+  nag on every click.
+- **Audit strip** (`AuditStrip.tsx`, `useCommandAudit.ts`) — a collapsible,
+  client-side log of every command issued this session: timestamp, target scope,
+  params, and **per-target outcome** merged live from the authoritative
+  `SwarmState.commands` (correlated by a **client-minted `command_id`**,
+  `web-<ts>-<seq>`, that the bridge echoes so the row tracks its own command
+  without racing the ack). Outcomes freeze at last-known when the command retires
+  from server retention. Labeled **`client-local`** in the UI — it is a convenience
+  view, not the system of record.
+
+*Verified* (`f1-audit.png`, `f1-confirm.png`): ALL-STOP fires end-to-end — the
+audit row reads `ALL 6 · speed 0` with chips `R-01…R-05 SENT` and `R-06
+ROBOT_OFFLINE`, and the alert feed independently catches the `ROBOT_OFFLINE` warn.
+The confirm dialog shows the red "Stop ALL 6 robots?" scope list with a `STOP ALL`
+button.
+
+**What production does differently.** Command **authority lives server-side**: the
+c2_server (not a browser) authenticates the operator, authorizes the action against
+role/rules-of-engagement, and is the one that fans out — the client only *requests*.
+The **audit log is server-authored and persisted** — every command with an id,
+who issued it, when, the decision, and per-target disposition, replayable and
+tamper-evident; the client-local strip here is a stand-in for that view. ALL-STOP
+in a real system is a **policy action** (which robots, safe-state vs. loiter vs.
+RTL, deconfliction) resolved by the core, not a hard-coded `speed:0` broadcast from
+the UI.
+
+### Feature 2 — Richer situational awareness
+
+Three additions, all toggleable in the left panel (**Situational awareness**
+group), all honest about being a client-side *model*, not truth.
+
+- **MIL-STD-2525 symbology** (`milsymbol`, `MapView.tsx`) — a top-bar `2525` toggle
+  swaps the colored dots for standard **friendly-air-UAV** symbols (SIDC
+  `SFAPMFQ--------` — warfighting / friend / air / present / UAV function). One
+  glyph for the swarm; the robot id rides the existing text label so the symbol
+  stays clean. Link health is shown **natively**: **STALE** dims the glyph,
+  **LOST** gives it a **red status halo**. Cached by link_status — three SVGs total.
+- **Predicted orbit** (`MapView.tsx`) — for each *selected* robot, a dashed circle
+  of its current center/radius, drawn from the telemetry motion model
+  (center = `[x − R·sin θ, y + R·cos θ]`). It shows where the robot *will* be, not
+  a fitted track. Toggleable; on by default.
+- **Coasting ghost** (`MapView.tsx`) — the point of the feature. When a link goes
+  **STALE**, the last-known dot freezes and a **dashed ghost** continues around the
+  predicted orbit by **dead reckoning** (`phi = θ − π/2 + (V/R)·age`), labeled
+  `proj · last seen 3.2s`. On **LOST**, the ghost **freezes** where it was at the
+  STALE→LOST transition and turns **red** (`… LOST · proj`). On **recovery**, the
+  real dot **snaps back and flashes green** and the ghost is dropped. The label
+  always says `proj` — this is a projection off a known motion model, never
+  represented as a fix.
+
+*Verified*: `f2-symbols.png` — all six as friendly-UAV symbols, R-03 selected with
+its dashed predicted orbit. `f2-symbols-stale.png` — R-06 STALE: dimmed glyph with
+its coasting ghost riding ahead (`proj · last seen 4.4s`). `f2-symbols-lost.png` —
+R-06 LOST: **red-haloed glyph** *and* the frozen **red LOST ghost** (`R-06 LOST ·
+proj`), roster row `LOST 6.4s`. `f2-ghost.png` — the same lifecycle in dot mode
+(STALE 2.4s). R-06's link-loss cycle is scripted in the fake source
+(`fakeSource.ts`, LIVE 9s → STALE 6s → LOST 4s → recover) purely so this lifecycle
+is demoable without pulling a real cable.
+
+**What production does differently.** The ghost is **deterministic dead reckoning**
+off a perfect circular model — a real coast needs a **real uncertainty model**: a
+last-known state *with covariance*, propagated (a filter's predict step), drawn as a
+**growing error ellipse** whose size encodes how stale/uncertain the estimate is,
+not a crisp dashed circle. The motion model would come from the platform, not be
+assumed. "STALE/LOST" would be driven by the server's watchdog and real link
+metrics, and the projection would degrade visibly (widen, then drop) rather than
+coast cleanly. The symbology is intentionally minimal (one SIDC, health as
+opacity/halo) — a full 2525 layer carries affiliation, echelon, and status
+modifiers driven by real track identity.
+
+### Running / demoing the round-3 beats
+
+Same `npm run dev` (fake mode). Headless-friendly demo params (throwaway helper,
+`App.tsx`): `?sym=1` starts in 2525 mode · `?sel=R-03,R-05` pre-selects (shows
+predicted orbits) · `?confirm=allstop` opens the ALL-STOP dialog · `?fire=allstop`
+issues it. R-06 cycles through the link-loss lifecycle on its own; the ghost/LOST
+states appear whenever it is in its down window.
+
+### Most demo-worthy 30-second beat
+
+**The coasting ghost + LOST recovery.** Watch R-06 orbiting; its link goes STALE —
+the dot freezes and a dashed ghost coasts ahead, labeled `last seen 2s`; it goes
+LOST — the ghost freezes red; the link recovers — the real dot **snaps back and
+flashes**. In one motion it tells the §9 story the WPF client only asserts: *the
+operator is never lied to about what is known vs. projected.* Flip on `2525` first
+and the same beat plays in standard symbology. ALL-STOP + the confirm gate is the
+strong runner-up — it's the beat that says "this is a command console, and it
+respects blast radius," in one red button and one dialog.
+
+---
 ## Bottom line for the demo
 
-Two 30-second stories, both self-contained (`--fake`, no server):
+Self-contained 30-second stories (`--fake`, no server):
 
 1. **"The same system, a different client."** A browser on a map, driving the
    unmodified C++ core — §9 client-platform independence. The stronger cut is
@@ -334,7 +448,12 @@ Two 30-second stories, both self-contained (`--fake`, no server):
 2. **"Supervision by exception."** Robots inside a mission geofence; command one
    out; a critical breach alert fires, its dot flashes, you click the alert to fly
    to it and ACK — §9 attention management, made concrete (the beat above).
+3. **"Never lied to about what's known."** *(round-3 branch)* A link degrades:
+   the dot freezes, a dashed ghost coasts ahead labeled `last seen 2s`, goes red on
+   LOST, and snaps back on recovery — projection is always labeled, never shown as
+   a fix. ALL-STOP + its confirm gate is the command-console runner-up.
 
-Both are supporting exhibits for §9 — **the WPF client remains the primary
-deliverable**, and every fixture/placeholder here is labeled as such. This client
-is on `master` as the vision for a web-based C2 and the proof of the seam.
+Stories 1–2 are on `master` (the vision for a web-based C2 and proof of the seam);
+story 3 lives on the throwaway `gui-spike-react-v2` branch. All are supporting
+exhibits for §9 — **the WPF client remains the primary deliverable**, and every
+fixture/placeholder here is labeled as such.
