@@ -1,11 +1,12 @@
-# gui/react-spike — React/MapLibre C2 client (THROWAWAY)
+# gui/react-spike — a web-based C2 client (React / MapLibre)
 
-> **THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission.**
-> Branch `gui-spike-react` only. Never merged. The submission is the C++ core +
-> the WPF `operator_gui`. This exists to prove `OperatorFeed` is client-platform-
-> independent (§9) with a second, browser-based client, explore a MapLibre map
+> **AI-ASSISTED EXPLORATION — proves the API seam and sketches a web-based C2.**
+> The primary deliverable is the C++ core + the WPF `operator_gui`; this is a
+> second, browser-based client driving the **unmodified** C2 server. It exists to
+> prove `OperatorFeed` is client-platform-independent (§9), explore a MapLibre map
 > layer (§9 stretch #2), and prototype a mission/geofence layer + attention-and-
-> alerting (§9 supervision by exception).
+> alerting (§9 supervision by exception). Built fast with AI assistance; less
+> mature than the WPF client — see MORNING_REPORT_REACT.md for what's verified.
 
 **Read `MORNING_REPORT_REACT.md`** — the full write-up (architecture, what works,
 gotchas, screenshots, what a production version would differ on).

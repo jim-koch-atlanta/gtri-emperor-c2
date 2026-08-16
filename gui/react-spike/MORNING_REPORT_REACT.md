@@ -1,15 +1,15 @@
 # MORNING REPORT — React / MapLibre C2 client spike
 
-> **THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission.**
-> Every file under `gui/react-spike/` was vibe-coded by Claude in one overnight,
-> unattended session (late Fri 2026-08-14 → Sat 2026-08-15). It lives only on the
-> branch `gui-spike-react`, is **never merged to master**, and is **not** the
-> interview deliverable. The submission is the C++ core + the WPF `operator_gui`.
-> Purpose: (a) prove `OperatorFeed` is client-platform-independent by attaching a
-> second, totally different client; (b) explore a MapLibre map layer (§9 stretch
-> #2), now with a **mission geometry layer** and **attention/alerting** (§9
-> supervision-by-exception); (c) leave Jim teaching material on the browser/gRPC
-> boundary.
+> **AI-ASSISTED EXPLORATION — proves the API seam and sketches a web-based C2.**
+> Every file under `gui/react-spike/` was vibe-coded by Claude in overnight,
+> unattended sessions (late Fri 2026-08-14 → Sat 2026-08-15), then reviewed and
+> merged to `master`. The primary deliverable is the C++ core + the WPF
+> `operator_gui`; this is a second, browser-based client — less mature, and
+> candid below about what is and isn't verified. Purpose: (a) prove `OperatorFeed`
+> is client-platform-independent by attaching a second, totally different client;
+> (b) explore a MapLibre map layer (§9 stretch #2), now with a **mission geometry
+> layer** and **attention/alerting** (§9 supervision-by-exception); (c) leave Jim
+> teaching material on the browser/gRPC boundary.
 >
 > **Session 2 (Sat 2026-08-15) added two features:** a mission geometry / geofence
 > layer (fixtures in Q1's schema + MapLibre rendering + layer toggles) and a
@@ -294,7 +294,7 @@ Open `http://localhost:5173`. The top-right badge shows the seam: **FAKE** vs
   (a) **gRPC-Web** — add an Envoy/`grpc-web` proxy and generate a browser gRPC-Web
   client, so the browser speaks (a flavour of) gRPC directly and there's no bespoke
   JSON envelope; or (b) treat the bridge as a real **API gateway** with auth,
-  backpressure, and per-client interest-management filters (§9). The throwaway's
+  backpressure, and per-client interest-management filters (§9). This spike's
   hand-rolled WebSocket+JSON is the shortest path to *proving* the seam, not the
   shape you'd ship.
 - **AuthN/AuthZ + command authority.** No identity here. Real multi-operator C2 is
@@ -335,6 +335,6 @@ Two 30-second stories, both self-contained (`--fake`, no server):
    out; a critical breach alert fires, its dot flashes, you click the alert to fly
    to it and ACK — §9 attention management, made concrete (the beat above).
 
-Both are supporting exhibits for §9 — **the WPF client remains the submission**,
-and every fixture/placeholder here is labeled as such. Nothing was merged to
-master; this lives only on `gui-spike-react`.
+Both are supporting exhibits for §9 — **the WPF client remains the primary
+deliverable**, and every fixture/placeholder here is labeled as such. This client
+is on `master` as the vision for a web-based C2 and the proof of the seam.

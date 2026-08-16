@@ -1,7 +1,6 @@
 # Emperor C2 — Demo Script (Mon 2026-08-17, 10:00 ET)
 
-Crib sheet. Glance, don't read. Narration lines = the *point* of the beat, not a
-script. Two terminals in WSL2 (`T1` server, `T2` for SIGSTOP/probe), GUI on Windows.
+Crib sheet. Glance, don't read. Narration lines = the *point* of the beat, not a script. Two terminals in WSL2 (`T1` server, `T2` for SIGSTOP/probe), GUI on Windows.
 
 ---
 
@@ -18,7 +17,7 @@ script. Two terminals in WSL2 (`T1` server, `T2` for SIGSTOP/probe), GUI on Wind
 **9:40 am**
 - [ ] Kill everything, relaunch clean (T1 launcher, GUI `--grpc`). Confirm live.
 - [ ] Window sized + positioned for screen-share; roster, tactical, command panel, status strip all visible.
-- [ ] Mic / screen-share check. Then **kill it all again** and hold at the launch sequence — start the demo from black.
+- [ ] Mic / screen-share check. Then **kill it all again** and hold at the launch sequence — start the demo from scratch.
 
 ---
 
@@ -30,9 +29,7 @@ script. Two terminals in WSL2 (`T1` server, `T2` for SIGSTOP/probe), GUI on Wind
 | 2 | Windows | `dotnet run --project gui\operator_gui -- --grpc` | window opens; six dots orbit; roster fills with status/age/speed/radius. (~5 s) |
 | 3 | GUI | click **Fit All** | swarm framed and circling. Status bar: `6 LIVE · 0 STALE · 0 LOST`. |
 
-> *Opening line:* "N robot processes on Linux, a C2 server fusing their state,
-> a Windows operator client — gRPC across the OS boundary. Watch a command's
-> whole lifecycle, per target."
+> *Opening line:* "N robot processes on Linux, a C2 server fusing their state, a Windows operator client — gRPC across the OS boundary. Watch a command's whole lifecycle, per target."
 
 ---
 
@@ -63,9 +60,7 @@ script. Two terminals in WSL2 (`T1` server, `T2` for SIGSTOP/probe), GUI on Wind
 - **See:** R-05 snaps back to **LIVE**, age drops, dot rejoins its circle.
 - **Point:** *link health is a pure function of receive-time age — recovery is automatic, no reset.*
 
-> *Close:* "That one status strip is communication + operator feedback + failure
-> handling + multi-robot commands, made visible." Then point at **TECH_SPEC §9**:
-> "here's how this prototype becomes the real system."
+> *Close:* "That one status strip is communication + operator feedback + failure handling + multi-robot commands, made visible." Then point at **TECH_SPEC §9**: "here's how this prototype becomes the real system."
 
 ---
 
@@ -74,15 +69,11 @@ script. Two terminals in WSL2 (`T1` server, `T2` for SIGSTOP/probe), GUI on Wind
 Same live C2 server, a **completely different client** — a browser.
 
 - **Do (WSL2, two more terminals):**
-  `cd gui/react-spike/bridge && npm start`   *(gRPC→WebSocket bridge on :8081, connects to the live :50051)*
-  `cd gui/react-spike/web && npm run dev`   *(→ open `http://localhost:5173`)*
-- **See:** the same six robots rendered on a map in the browser, off the same
-  `OperatorFeed` stream — the C2 server unchanged and unaware.
-- **Say:** "The operator API is UI-framework-neutral by construction. This is a
-  **throwaway, AI-assisted** exploration on a branch — not the submission — but it
-  proves the seam: a second client, zero core changes."
-- **SKIP IF:** running long or energy is low. It's a supporting exhibit; skipping
-  costs nothing. The WPF client is the deliverable.
+  - `cd gui/react-spike/bridge && npm start`   *(gRPC→WebSocket bridge on :8081, connects to the live :50051)*
+  - `cd gui/react-spike/web && npm run dev`   *(→ open `http://localhost:5173`)*
+- **See:** the same six robots rendered on a map in the browser, off the same `OperatorFeed` stream — the C2 server unchanged and unaware.
+- **Say:** "The operator API is UI-framework-neutral by construction — here's the same C2, zero core changes, in a browser. Built **AI-assisted**, less mature than the WPF client, but it's the vision for a **web-based C2**: cross-platform, one deployment point (upgrade the server, every operator gets it), no client install, multi-operator by construction — hosted *inside* the enclave, not on the internet, so deployment stays controlled. The seam is what lets you have a native client *and* a web client against one core."
+- **SKIP IF:** running long or energy is low. It's a supporting exhibit; skipping costs nothing. The WPF client is the primary deliverable.
 
 ---
 
