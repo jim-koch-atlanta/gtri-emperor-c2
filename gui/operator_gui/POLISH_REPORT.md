@@ -53,13 +53,13 @@ running fake-feed app.
 
 ## Skipped due to the boundary (each is a 1-line change Jim can make)
 
-1. **Status-colored tactical dots.** The react map colors markers by link status; the roster
+1. **[DONE] Status-colored tactical dots.** The react map colors markers by link status; the roster
    already does this. Doing the same on the canvas dot needs a *new binding* to `Status`, so
    I left the dot a fixed accent. To adopt it, on the 14px dot ellipse (MainWindow.xaml,
    tactical `DataTemplate`) change `Fill="{StaticResource Brush.Accent}"` →
    `Fill="{Binding Status, Converter={StaticResource StatusToBrush}}"`. (Same pattern Jim
    already uses on the roster dot — safe, just outside "no new bindings".)
-2. **Window sizing / canvas framing.** The window is 800×450 and the command panel is snug;
+2. **[DONE] Window sizing / canvas framing.** The window is 800×450 and the command panel is snug;
    only some robots are visible on the canvas at once. Both stem from `VW/VH` being hardcoded
    `800×450` in `MainViewModel` (a VM concern — out of bounds here). The screenshot shows one
    dot for this reason, **not** a styling regression. Widening the window without wiring the
@@ -78,6 +78,8 @@ running fake-feed app.
   `PrintWindow` did yield a real static screenshot (`polish_preview.png`).
 
 ## ✅ Jim's Sunday checklist — verify against the LIVE swarm before merging
+
+**Status**: Done and verified.
 
 Run `launch_swarm.sh N` (WSL) + the GUI `--grpc` (Windows), then confirm all six:
 

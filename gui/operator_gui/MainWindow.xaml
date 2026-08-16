@@ -198,7 +198,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Polyline Points="{Binding Trail}" Stroke="{StaticResource Brush.Accent}" StrokeThickness="1.5" Opacity="0.35"/>
+                    <Polyline Points="{Binding Trail}" Stroke="{Binding Status, Converter={StaticResource StatusToBrush}}" StrokeThickness="2.0" Opacity="0.5"/>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -226,7 +226,7 @@
                                 </Ellipse.Effect>
                             </Ellipse>
                             <Ellipse Width="14" Height="14"
-                                     Fill="{StaticResource Brush.Accent}"
+                                     Fill="{Binding Status, Converter={StaticResource StatusToBrush}}"
                                      Stroke="{StaticResource Brush.Bg}" StrokeThickness="2"
                                      MouseLeftButtonDown="Dot_Click" />
                         </Grid>
