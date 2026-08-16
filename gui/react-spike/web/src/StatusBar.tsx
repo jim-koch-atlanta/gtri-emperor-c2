@@ -1,4 +1,5 @@
-// THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission.
+// AI-ASSISTED EXPLORATION — the web-based C2 vision, a supporting exhibit for
+// TECH_SPEC §9; the C++ core + WPF operator_gui are the primary submission.
 //
 // Top status bar. Glanceable swarm health (LIVE/STALE/LOST counts) plus the
 // connection state (which client seam you're looking at). Round 3 adds an

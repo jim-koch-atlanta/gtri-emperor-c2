@@ -1,4 +1,5 @@
-// THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission.
+// AI-ASSISTED EXPLORATION — the web-based C2 vision, a supporting exhibit for
+// TECH_SPEC §9; the C++ core + WPF operator_gui are the primary submission.
 //
 // AlertEngine — supervision by exception (TECH_SPEC §9 "attention management").
 // A PURE, unit-testable state machine: feed it SwarmState frames, it returns the

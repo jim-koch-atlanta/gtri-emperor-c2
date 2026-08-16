@@ -1,4 +1,5 @@
-// THROWAWAY AI-GENERATED EXPLORATION (round 3) — proves the API seam; not the submission.
+// AI-ASSISTED EXPLORATION — the web-based C2 vision, a supporting exhibit for
+// TECH_SPEC §9; the C++ core + WPF operator_gui are the primary submission.
 //
 // Confirmation gate for wide/destructive commands (ALL-STOP, or any command
 // targeting >3 robots). Destructive-command UX doctrine: state the SCOPE

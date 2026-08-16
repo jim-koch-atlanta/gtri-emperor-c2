@@ -1,4 +1,5 @@
-// THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission.
+// AI-ASSISTED EXPLORATION — the web-based C2 vision, a supporting exhibit for
+// TECH_SPEC §9; the C++ core + WPF operator_gui are the primary submission.
 //
 // Shared visual vocabulary so the map paint expressions and the DOM panels agree
 // on exactly one color per state. Traffic-light status semantics (green=healthy).

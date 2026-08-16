@@ -1,4 +1,5 @@
-// THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission.
+// AI-ASSISTED EXPLORATION — the web-based C2 vision, a supporting exhibit for
+// TECH_SPEC §9; the C++ core + WPF operator_gui are the primary submission.
 //
 // Generator for the two mission fixtures in ../../fixtures/. PRESENTATION/BUILD
 // TOOLING — it stands in for the real gtri-penguin-fence pipeline, which projects to

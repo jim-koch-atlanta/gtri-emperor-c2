@@ -1,4 +1,5 @@
-// THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission.
+// AI-ASSISTED EXPLORATION — the web-based C2 vision, a supporting exhibit for
+// TECH_SPEC §9; the C++ core + WPF operator_gui are the primary submission.
 //
 // Loads the mission fence fixture (fixtures/mcmurdo_fence.geojson) at build time
 // and exposes it split by role for rendering, plus the point-in-fence test used by

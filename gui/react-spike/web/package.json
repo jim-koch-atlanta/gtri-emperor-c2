@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "THROWAWAY AI-GENERATED EXPLORATION — React/MapLibre operator client; not the submission.",
+  "description": "AI-assisted exploration — React/MapLibre operator client, the web-C2 vision (a TECH_SPEC §9 exhibit). Primary submission: C++ core + WPF operator_gui.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

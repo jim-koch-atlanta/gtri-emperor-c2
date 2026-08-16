@@ -1,4 +1,5 @@
-// THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission.
+// AI-ASSISTED EXPLORATION — the web-based C2 vision, a supporting exhibit for
+// TECH_SPEC §9; the C++ core + WPF operator_gui are the primary submission.
 //
 // Wire shapes shared by the bridge and (by copy) the web client. These mirror
 // robot.proto (TECH_SPEC §4) 1:1 under proto-loader's keepCase decoding, so the

@@ -1,4 +1,4 @@
-# THROWAWAY exploration — build output & deps are not committed.
+# AI-assisted exploration (the web-C2 vision) — build output & deps are not committed.
 node_modules/
 dist/
 .vite/

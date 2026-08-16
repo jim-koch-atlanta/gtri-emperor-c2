@@ -1,4 +1,5 @@
-// THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission.
+// AI-ASSISTED EXPLORATION — the web-based C2 vision, a supporting exhibit for
+// TECH_SPEC §9; the C++ core + WPF operator_gui are the primary submission.
 //
 // Alert feed (right panel). Newest first, colored by severity, each acknowledgeable.
 // Clicking an alert selects and flies to the robot — the operator jumps straight

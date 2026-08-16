@@ -1,4 +1,5 @@
-// THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission.
+// AI-ASSISTED EXPLORATION — the web-based C2 vision, a supporting exhibit for
+// TECH_SPEC §9; the C++ core + WPF operator_gui are the primary submission.
 //
 // Composition root. Holds UI-only state and wires the data seam (useSwarm) to the
 // panels. Round 3 adds a central issueCommand() that enforces a confirmation gate

@@ -1,4 +1,5 @@
-// THROWAWAY AI-GENERATED EXPLORATION (round 3) — proves the API seam; not the submission.
+// AI-ASSISTED EXPLORATION — the web-based C2 vision, a supporting exhibit for
+// TECH_SPEC §9; the C++ core + WPF operator_gui are the primary submission.
 //
 // Audit log panel (collapsible, right column). Every command issued this session:
 // time · scope · params · per-target outcome chips. Labeled CLIENT-LOCAL — the

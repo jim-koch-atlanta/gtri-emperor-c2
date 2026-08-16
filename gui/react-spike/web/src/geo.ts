@@ -1,4 +1,5 @@
-// THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission.
+// AI-ASSISTED EXPLORATION — the web-based C2 vision, a supporting exhibit for
+// TECH_SPEC §9; the C++ core + WPF operator_gui are the primary submission.
 //
 // World anchoring. The robots live in a planar frame (x/y meters, TECH_SPEC §2);
 // this places that frame on the globe as local East/North offsets from an anchor,

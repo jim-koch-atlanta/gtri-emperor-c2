@@ -1,4 +1,5 @@
-// THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission.
+// AI-ASSISTED EXPLORATION — the web-based C2 vision, a supporting exhibit for
+// TECH_SPEC §9; the C++ core + WPF operator_gui are the primary submission.
 //
 // The tactical map. MapLibre is imperative, so the pattern is: create the map
 // ONCE (a ref, never re-created on React re-render), add empty GeoJSON sources +

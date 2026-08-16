@@ -1,4 +1,5 @@
-// THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission.
+// AI-ASSISTED EXPLORATION — the web-based C2 vision, a supporting exhibit for
+// TECH_SPEC §9; the C++ core + WPF operator_gui are the primary submission.
 //
 // Bridge entry point. Wires a Source (real gRPC C2 server, or the fake
 // simulator) to a WebSocket fan-out the browser can consume. This process is the

@@ -1,4 +1,5 @@
-// THROWAWAY AI-GENERATED EXPLORATION — proves the API seam; not the submission.
+// AI-ASSISTED EXPLORATION — the web-based C2 vision, a supporting exhibit for
+// TECH_SPEC §9; the C++ core + WPF operator_gui are the primary submission.
 //
 // Left-panel toggles. MAP LAYERS declutters the mission geometry (fence / buffers
 // / inputs); SITUATIONAL AWARENESS (round 3) toggles the predicted orbit and the
