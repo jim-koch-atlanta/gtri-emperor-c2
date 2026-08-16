@@ -43,6 +43,57 @@
             </Rectangle.Fill>
         </Rectangle>
 
+        <!-- The map / canvas -->
+        <ItemsControl ClipToBounds="True" Grid.Column="1" ItemsSource="{Binding Robots}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Polyline Points="{Binding Trail}" Stroke="{Binding Status, Converter={StaticResource StatusToBrush}}" StrokeThickness="2.0" Opacity="0.5"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <ItemsControl ClipToBounds="True" Grid.Column="1" ItemsSource="{Binding Robots}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Canvas/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle>
+                <Style TargetType="ContentPresenter">
+                    <Setter Property="Canvas.Left" Value="{Binding CanvasX}"/>
+                    <Setter Property="Canvas.Top"  Value="{Binding CanvasY}"/>
+                </Style>
+            </ItemsControl.ItemContainerStyle>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Margin="-11, -11, 0, 0">  <!-- Margins to drop the center of the robot's dot to (CanvasX, CanvasY) -->
+                        <Grid Width="22" Height="22">
+                            <Ellipse Width="22" Height="22" Stroke="{StaticResource Brush.Text}" StrokeThickness="2"
+                                     Fill="Transparent"
+                                     Visibility="{Binding IsSelected, Converter={StaticResource BoolToVis}}">
+                                <Ellipse.Effect>
+                                    <DropShadowEffect Color="#e6edf3" BlurRadius="8" ShadowDepth="0" Opacity="0.7"/>
+                                </Ellipse.Effect>
+                            </Ellipse>
+                            <Ellipse Width="14" Height="14"
+                                     Fill="{Binding Status, Converter={StaticResource StatusToBrush}}"
+                                     Stroke="{StaticResource Brush.Bg}" StrokeThickness="2"
+                                     MouseLeftButtonDown="Dot_Click" />
+                        </Grid>
+                        <TextBlock Text="{Binding Id}" FontFamily="Consolas" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{StaticResource Brush.Text}" HorizontalAlignment="Center" Margin="0,1,0,0">
+                            <TextBlock.Effect>
+                                <DropShadowEffect Color="#0d1117" BlurRadius="3" ShadowDepth="0"/>
+                            </TextBlock.Effect>
+                        </TextBlock>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
         <ListBox
             Grid.Column="0"
             Grid.Row="0"
@@ -192,54 +243,6 @@
                            Foreground="{StaticResource Brush.Live}"  FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </DockPanel>
         </Border>
-        <ItemsControl Grid.Column="1" ItemsSource="{Binding Robots}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Polyline Points="{Binding Trail}" Stroke="{Binding Status, Converter={StaticResource StatusToBrush}}" StrokeThickness="2.0" Opacity="0.5"/>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
-        <ItemsControl Grid.Column="1" ItemsSource="{Binding Robots}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <Canvas/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemContainerStyle>
-                <Style TargetType="ContentPresenter">
-                    <Setter Property="Canvas.Left" Value="{Binding CanvasX}"/>
-                    <Setter Property="Canvas.Top"  Value="{Binding CanvasY}"/>
-                </Style>
-            </ItemsControl.ItemContainerStyle>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel Margin="-11, -11, 0, 0">  <!-- Margins to drop the center of the robot's dot to (CanvasX, CanvasY) -->
-                        <Grid Width="22" Height="22">
-                            <Ellipse Width="22" Height="22" Stroke="{StaticResource Brush.Text}" StrokeThickness="2"
-                                     Fill="Transparent"
-                                     Visibility="{Binding IsSelected, Converter={StaticResource BoolToVis}}">
-                                <Ellipse.Effect>
-                                    <DropShadowEffect Color="#e6edf3" BlurRadius="8" ShadowDepth="0" Opacity="0.7"/>
-                                </Ellipse.Effect>
-                            </Ellipse>
-                            <Ellipse Width="14" Height="14"
-                                     Fill="{Binding Status, Converter={StaticResource StatusToBrush}}"
-                                     Stroke="{StaticResource Brush.Bg}" StrokeThickness="2"
-                                     MouseLeftButtonDown="Dot_Click" />
-                        </Grid>
-                        <TextBlock Text="{Binding Id}" FontFamily="Consolas" FontSize="11" FontWeight="SemiBold"
-                                   Foreground="{StaticResource Brush.Text}" HorizontalAlignment="Center" Margin="0,1,0,0">
-                            <TextBlock.Effect>
-                                <DropShadowEffect Color="#0d1117" BlurRadius="3" ShadowDepth="0"/>
-                            </TextBlock.Effect>
-                        </TextBlock>
-                    </StackPanel>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
 
         <!-- The command panel -->
         <Border Grid.Column="2" Grid.Row="0"
