@@ -216,7 +216,7 @@
             </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <StackPanel>
+                    <StackPanel Margin="-11, -11, 0, 0">  <!-- Margins to drop the center of the robot's dot to (CanvasX, CanvasY) -->
                         <Grid Width="22" Height="22">
                             <Ellipse Width="22" Height="22" Stroke="{StaticResource Brush.Text}" StrokeThickness="2"
                                      Fill="Transparent"
