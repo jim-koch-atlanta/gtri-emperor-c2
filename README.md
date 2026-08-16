@@ -95,11 +95,12 @@ flowchart LR
   and reports `CommandResult` up the same bidi stream. Dials out; no inbound
   ports.
 - **`c2_server` (C++20):** hosts both gRPC services on one port. Three organs, all
-  on **domain types, not protobuf** (see the gateway seam): **Track Store** (the
-  question's "common internal data structure": latest state per robot, ordered by
-  per-robot seq), **Command Tracker** (per-command per-target lifecycle + the
-  fan-out of one operator command into per-robot commands), **Link Watchdog**
-  (per-robot LIVE→STALE→LOST on server **receive** time).
+  on **domain types, not protobuf** (see the gateway seam):
+  - **Track Store**: the question's "common internal data structure". Latest state
+  per robot, ordered by per-robot seq
+  - **Command Tracker**: per-command per-target lifecycle + the fan-out of one
+  operator command into per-robot commands
+  - **Link Watchdog**: per-robot LIVE→STALE→LOST on server **receive** time
 - **`operator_gui` (C# / .NET 8 / WPF, MVVM):** subscribes to the `SwarmState`
   stream on a background reader and marshals to the UI thread; roster, tactical
   canvas with trails, multi-select, command panel, and the command-status strip.
@@ -128,13 +129,15 @@ the C2 takes **custody** of the command; per-target **delivery** outcome
 - **Two clocks, never crossed** — the watchdog uses **`steady_clock`** (monotonic
   age can't be corrupted by a wall-clock jump); command timestamps/expiry and
   event times use **`system_clock`** (human-meaningful).
-- **Full-state broadcast, not deltas** — correct at this scale (≈20 robots × ~60 B
-  × 5 Hz = kilobytes); deltas only pay when state is large and churn is sparse.
-  The ratio decides, not habit — deltas + interest management are the documented
+  * `system_clock` risks "drift" in a distributed system, where clock drift could result in commands being immediately expired or outlasting their desired expiry. For a production solution, other options would be considered. See below.
+- **Full-state broadcast, not deltas** — Full broadcasts are correct at this scale (≈20 robots × ~60 B
+  × 5 Hz = kilobytes). Deltas would become worthwhile once state is large and churn is sparse.
+  The *ratio* decides — deltas + interest management are the documented
   scaling path (§9).
-- **WPF, de-risked by a timeboxed spike** — a mature desktop stack fit to this UI;
-  new to me, so a Thursday-AM spike with a **named React/TypeScript fallback**
-  contained the risk. The spike passed; the fallback wasn't needed.
+- **WPF, de-risked by a timeboxed spike** — Because the role description is for C++ and C#, those languages were given preference; with that consideration, WPF is a mature desktop stack fit for this sort of UI.
+  I haven't worked with C# and WPF recently, so a spike was performed early-on, with
+  **React/TypeScript as the fallback** to contain the risk. The spike was successful;
+  the React/TypeScript fallback became a vibe-coded proof-of-concept.
 - **Gateway seam** — generated protobuf types are *not* the domain model; a thin
   `RobotGateway` translates at the edge, so a transport swap touches no track
   store, command logic, or UI.
@@ -181,13 +184,16 @@ the C2 takes **custody** of the command; per-target **delivery** outcome
 - **Fit All uses a hardcoded viewport size** — window-resize (`ActualWidth/Height`)
   isn't wired into the transform yet; resize then Fit All to reframe.
 - **Stretch items, in order** (TECH_SPEC §9): the coasting ghost (STALE robot's dot
-  continues its known circle, dashed + age-annotated) · a MapLibre-class map layer
+  continues its known circle, dashed + age-annotated) · a map layer
   under the tactical view · a **MAVLink adapter** proving the gateway seam with a
   second real protocol · motion-noise for an honest uncertainty display.
-- **Scaling path** — how this prototype becomes a real system (snapshot+delta,
-  interest management, attention management, multi-operator authority, current-
-  state-vs-history) is designed and documented in **[TECH_SPEC §9](docs/TECH_SPEC.md)**,
-  deliberately not built.
+- **Scaling path — designed, deliberately not built.** How this prototype becomes
+  a real system: snapshot+delta (and why the *ratio*, not habit, decides),
+  interest management as filtered pub/sub, server-side attention management,
+  group command semantics, multi-operator authority, current-state-vs-history,
+  and time across machines. Fully laid out in
+  **[TECH_SPEC §9 → The scaling path](docs/TECH_SPEC.md)** — the section to open
+  if you want to know how I'd take this to production.
 
 ---
 
