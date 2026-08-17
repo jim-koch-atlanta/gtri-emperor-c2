@@ -61,17 +61,23 @@ Per the question's Consideration #1, the focus is **visualization, user interfac
 ## 4. Architecture
 
 ```mermaid
-flowchart LR
-    subgraph WSL2
-      R1[robot_sim ×N\nC++20, 10 Hz tick] -- "gRPC bidi Link\nTelemetry / CommandResult up\nRobotCommand down" --> GW[GrpcRobotGateway]
-      GW --> CORE
+flowchart BT
+    R1[robot_sim ×N\nC++20, 10 Hz tick]
+
+    subgraph SERVER[c2_server · C++20]
       subgraph CORE[C2 Core — domain types, transport-neutral]
         TS[Track Store\nlatest-wins per robot by seq]
         CT[Command Tracker\nlifecycle per target]
         LS[Link State\nwatchdog LIVE/STALE/LOST]
       end
+      GW[GrpcRobotGateway]
+      GW --> CORE
     end
-    CORE -- "SwarmState stream 5 Hz\n(gRPC)" --> GUI[operator_gui\nC# / WPF · MVVM]
+
+    GUI[operator_gui\nC# / WPF · MVVM]
+
+    R1 -- "gRPC bidi Link\nTelemetry / CommandResult up\nRobotCommand down" --> GW
+    CORE -- "SwarmState stream 5 Hz\n(gRPC)" --> GUI
     GUI -- "OperatorCommand(targets[], params)" --> CORE
 ```
 
