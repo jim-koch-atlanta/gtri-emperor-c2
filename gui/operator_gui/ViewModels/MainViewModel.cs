@@ -38,30 +38,65 @@ public sealed class MainViewModel : ObservableObject
     private double _VH = 450;
     public double VH { get => _VH; set => SetField(ref _VH, value); }
 
+    private enum ChangeOrigin
+    {
+        User,
+        Code
+    }
+
     // Properties for sending a command for a change in speed or radius.
     private double _CommandSpeed;
-    public double CommandSpeed  { get => _CommandSpeed;  set => SetField(ref _CommandSpeed, value); }
+    private bool CommandSpeedEdited;
+    public double CommandSpeed  { get => _CommandSpeed; set { SetCommandSpeed(value, ChangeOrigin.User); } }
+
+    private void SetCommandSpeed(double value, ChangeOrigin origin)
+    {
+        SetField(ref _CommandSpeed, value, nameof(CommandSpeed));
+        CommandSpeedEdited = (CommandSpeedEdited || (origin == ChangeOrigin.User));
+    }
+
+    private void SetCommandSpeedFromCode(double value)
+    {
+        SetCommandSpeed(value, ChangeOrigin.Code);
+    }
 
     private double _CommandRadius;
-    public double CommandRadius { get => _CommandRadius; set => SetField(ref _CommandRadius, value); }
-    // The robots selected on the UI.
+    private bool CommandRadiusEdited;
+    public double CommandRadius { get => _CommandRadius; set { SetCommandRadius(value, ChangeOrigin.User); } }
 
+    private void SetCommandRadius(double value, ChangeOrigin origin)
+    {
+        SetField(ref _CommandRadius, value, nameof(CommandRadius));
+        CommandRadiusEdited = (CommandRadiusEdited || (origin == ChangeOrigin.User));
+    }
+
+    private void SetCommandRadiusFromCode(double value)
+    {
+        SetCommandRadius(value, ChangeOrigin.Code);
+    }
+
+    // The robots selected on the UI.
     public ObservableCollection<RobotViewModel> SelectedRobots { get; } = new();
 
+    // Click, not Ctrl-Click.
     public void SetSelection(IEnumerable<RobotViewModel> robots)
     {
         var chosen = new HashSet<RobotViewModel>(robots);
         foreach (var r in Robots)
             r.IsSelected = chosen.Contains(r);
 
+        CommandSpeedEdited = false;
+        CommandRadiusEdited = false;
+
         // Update the Command Panel's values.
         var first = SelectedRobots.FirstOrDefault();
         if (first is not null) {
-            CommandSpeed = first.Speed;
-            CommandRadius = first.Radius;
+            SetCommandSpeedFromCode(first.Speed);
+            SetCommandRadiusFromCode(first.Radius);
         }        
     }
 
+    // Ctrl-Click, not standard click.
     public void ToggleSelection(RobotViewModel robot)
         => robot.IsSelected = !robot.IsSelected;
 
@@ -163,8 +198,8 @@ public sealed class MainViewModel : ObservableObject
                         // Update the Command panel
                         var first = SelectedRobots.FirstOrDefault();
                         if (first is not null) {
-                            CommandSpeed = first.Speed;
-                            CommandRadius = first.Radius;
+                            SetCommandSpeedFromCode(first.Speed);
+                            SetCommandRadiusFromCode(first.Radius);
                         }
                     }
                 };
@@ -320,8 +355,13 @@ public sealed class MainViewModel : ObservableObject
         var first = SelectedRobots.FirstOrDefault();
         if (first is not null)
         {
-            if (CommandSpeed  != first.Speed)  sp.Speed  = CommandSpeed;    // set = present ("hazzer")
-            if (CommandRadius != first.Radius) sp.Radius = CommandRadius;
+            if (CommandSpeedEdited) {
+                sp.Speed = CommandSpeed;
+            }
+
+            if (CommandRadiusEdited) {
+                sp.Radius = CommandRadius;
+            }
         }
         cmd.SetParameters = sp;
 
