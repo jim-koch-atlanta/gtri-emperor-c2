@@ -65,7 +65,7 @@ export class FakeSource implements Source {
 
   constructor() {
     // 5 live orbiters + 1 frozen (STALE) robot, positioned to sit INSIDE the
-    // mission fence fixture (fixtures/mcmurdo_mission.txt): launch circle, ingress
+    // mission fence fixture (fixtures/mcmurdo.json): launch circle, ingress
     // corridor, and ROI buffer, all in local E/N metres from the McMurdo anchor.
     // R-03 orbits inside the ROI and is the geofence-breach demo robot — bump its
     // radius large and its orbit clears the whole fence (see MORNING_REPORT beat).

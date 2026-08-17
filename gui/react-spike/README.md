@@ -29,7 +29,7 @@ bridge/     Node + TS. proto-loader -> OperatorFeed.Subscribe -> WebSocket fan-o
             Command intents (JSON) -> OperatorFeed.SendCommand. --fake = simulator.
 web/        Vite + React 18 + TS + MapLibre + turf. WS + alert seams; DOM-marker
             robots + mission geofence layer; roster, counts, command strip, alert feed.
-fixtures/   mcmurdo_mission.txt + mcmurdo_fence.geojson — Q1 I/O schema; fence is a
+fixtures/   mcmurdo.json + mcmurdo.geojson — Q1 I/O schema; fence is a
             labeled PLACEHOLDER (turf buffers, not the real gtri-penguin-fence pipeline).
 screenshots/  feature1-mission · feature2-breach · feature2-nominal · (session 1) …
 ```

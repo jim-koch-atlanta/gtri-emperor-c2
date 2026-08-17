@@ -85,12 +85,12 @@ is exact to centimetres over the ~1.5 km the swarm spans.
 
 A plausible mission and its geofence, rendered under the swarm.
 
-- **`fixtures/mcmurdo_mission.txt`** — a mission in **Q1's exact input format**
+- **`fixtures/mcmurdo.json`** — a mission in **Q1's exact input format**
   (JSON with hemisphere-suffixed lat/lon strings — `launchPoint`, `ingressRoute[3]`,
   `regionOfInterest[5]`), placed at McMurdo: a launch point, a 3-vertex ingress
   route, and a 5-vertex ROI pentagon a few hundred metres away, the whole thing
   ~1.3 km across (inside the robots' frame).
-- **`fixtures/mcmurdo_fence.geojson`** — a hand-approximated fence in **Q1's exact
+- **`fixtures/mcmurdo.geojson`** — a hand-approximated fence in **Q1's exact
   output schema** (`FeatureCollection` + `aeqd_center`; features carry
   `{name, role}` with roles `input` / `fence`, union named `fence` — matching
   `gtri-penguin-fence`'s `geojson.cpp`). Launch circle ~200 m, ingress corridor

@@ -98,7 +98,7 @@ const mission = {
   regionOfInterest: roiClosed.map(toHemi),
 };
 
-writeFileSync(resolve(FIXTURES, "mcmurdo_mission.txt"), JSON.stringify(mission, null, 2) + "\n");
-writeFileSync(resolve(FIXTURES, "mcmurdo_fence.geojson"), JSON.stringify(fence, null, 2) + "\n");
-console.log(`wrote mcmurdo_mission.txt (${mission.ingressRoute.length}-pt route, ${roi.length}-vertex ROI)`);
-console.log(`wrote mcmurdo_fence.geojson (union geometry: ${unionEq.geometry.type})`);
+writeFileSync(resolve(FIXTURES, "mcmurdo.json"), JSON.stringify(mission, null, 2) + "\n");
+writeFileSync(resolve(FIXTURES, "mcmurdo.geojson"), JSON.stringify(fence, null, 2) + "\n");
+console.log(`wrote mcmurdo.json (${mission.ingressRoute.length}-pt route, ${roi.length}-vertex ROI)`);
+console.log(`wrote mcmurdo.geojson (union geometry: ${unionEq.geometry.type})`);

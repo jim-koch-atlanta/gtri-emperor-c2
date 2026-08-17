@@ -1,14 +1,14 @@
 // AI-ASSISTED EXPLORATION — the web-based C2 vision, a supporting exhibit for
 // TECH_SPEC §9; the C++ core + WPF operator_gui are the primary submission.
 //
-// Loads the mission fence fixture (fixtures/mcmurdo_fence.geojson) at build time
+// Loads the mission fence fixture (fixtures/mcmurdo.geojson) at build time
 // and exposes it split by role for rendering, plus the point-in-fence test used by
 // the geofence-breach alert rule. The fixture is a PLACEHOLDER hand-approximation
 // (turf buffers), same schema as the real gtri-penguin-fence emitter — see its
 // _note and MORNING_REPORT_REACT.md. In production this geometry would arrive from
 // the actual pipeline (and the breach test would run server-side).
 
-import fenceRaw from "../../fixtures/mcmurdo_fence.geojson?raw";
+import fenceRaw from "../../fixtures/mcmurdo.geojson?raw";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import type { Feature, FeatureCollection, Polygon, MultiPolygon } from "geojson";
 import { metersToLonLat } from "./geo";
