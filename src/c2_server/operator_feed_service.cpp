@@ -14,7 +14,7 @@ namespace c2
 {
 
     OperatorFeedService::OperatorFeedService(TrackStore &store, LinkWatchdog &watchdog,
-                                             CommandTracker &tracker, GrpcRobotGateway &gateway)
+                                             CommandTracker &tracker, GrpcRobotCallbackGateway &gateway)
         : store_{store}, watchdog_{watchdog}, tracker_{tracker}, gateway_{gateway} {}
 
     // ---- file-local domain->proto translation (the north seam) -----------------

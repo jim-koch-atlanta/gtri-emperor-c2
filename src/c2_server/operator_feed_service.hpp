@@ -15,14 +15,14 @@
 #include "track_store.hpp"
 #include "link_watchdog.hpp"
 #include "command_tracker.hpp"
-#include "grpc_robot_gateway.hpp"
+#include "grpc_robot_callback_gateway.hpp"
 
 namespace c2 {
 
 class OperatorFeedService final : public emperor::OperatorFeed::Service {
 public:
     OperatorFeedService(TrackStore& store, LinkWatchdog& watchdog,
-                      CommandTracker& tracker, GrpcRobotGateway& gateway);
+                      CommandTracker& tracker, GrpcRobotCallbackGateway& gateway);
 
     grpc::Status Subscribe(grpc::ServerContext* ctx,
                          const emperor::SubscribeRequest*,
@@ -35,7 +35,7 @@ private:
     TrackStore& store_;
     LinkWatchdog& watchdog_;
     CommandTracker& tracker_;
-    GrpcRobotGateway& gateway_;
+    GrpcRobotCallbackGateway& gateway_;
 };
 
 }
