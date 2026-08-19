@@ -5,7 +5,7 @@
 #include "track_store.hpp"
 #include "link_watchdog.hpp"
 #include "command_tracker.hpp"
-#include "grpc_robot_gateway.hpp"
+#include "grpc_robot_callback_gateway.hpp"
 #include "operator_feed_service.hpp"
 
 int main()
@@ -35,9 +35,9 @@ int main()
     tracker.onCommandResult(r, std::chrono::system_clock::now());
   };
 
-  // GrpcRobotGateway is the translation between gRPC objects and our internal objects,
+  // GrpcRobotCallbackGateway is the translation between gRPC objects and our internal objects,
   // so that our business logic is transport-layer agnostic.
-  c2::GrpcRobotGateway gateway(on_telemetry_, on_command_result_);
+  c2::GrpcRobotCallbackGateway gateway(on_telemetry_, on_command_result_);
 
   // Operator feed handles coneections from C2 clients (the GUI).
   c2::OperatorFeedService feed(store, watchdog, tracker, gateway);

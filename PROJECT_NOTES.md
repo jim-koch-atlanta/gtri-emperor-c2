@@ -366,3 +366,79 @@ Build order (each green before the next), per TECH_SPEC §3 / §12:
 **Reference only, NEVER copy:** `gui/spike-scratch/` + `MORNING_REPORT.md` —
 last night's throwaway shows all of the above assembled. Study the shape, then
 write clean in `gui/operator_gui/`.
+
+---
+
+## Concurrency models — reactor spike (Wed 2026-08-19, branch `spike-reactor`)
+
+Prompted by Monday's "N robots = N threads?", which I couldn't answer for C++.
+Goal: DEFEND the threading model for Friday's in-person round. Branch only —
+master untouched (checked out only to build the sync baseline for measurement).
+
+### The three gRPC C++ server models
+- **Sync (thread-per-RPC)** — `RobotLink::Service`; blocking `ServerReaderWriter::
+  Read()/Write()`. One threadpool thread per active RPC, parked in `Read()` between
+  frames; a bidi stream needs a 2nd thread to write concurrently → a writer jthread
+  per link. **This is what I originally built.** ~2 threads/robot.
+- **Async CQ (tag dispatch)** — `AsyncService` + `ServerCompletionQueue`. Ops carry a
+  tag; a small fixed pool drains `cq->Next()` and services all RPCs. Thread-frugal but
+  you hand-write the state machine (verbose, tag-lifetime bugs). NB: "the async API" in
+  gRPC means THIS, not the callback API.
+- **Callback / reactor** — `RobotLink::CallbackService`; `Link()` is a factory returning
+  a per-connection `ServerBidiReactor<Uplink,RobotCommand>*`. A library-owned EventEngine
+  pool runs the callbacks — **no thread per RPC; an idle stream holds none.** Same async
+  engine as CQ, tags hidden. **Converted RobotLink to this.**
+
+### Reactor lifecycle (API surface)
+- I initiate: `StartRead(&buf)`, `StartWrite(&buf)`, `Finish(status)`.
+- Library reacts (EventEngine threads): `OnReadDone(ok)`, `OnWriteDone(ok)`, `OnCancel()`,
+  `OnDone()`.
+- Rules: ONE outstanding read + ONE outstanding write (read/write may overlap); buffers
+  passed to `Start*` must outlive the op → reactor MEMBERS, not locals; `ok==false` =
+  half-closed/broken → `Finish`; I `new` the reactor, `delete this` in `OnDone()`
+  (exactly-once, last — gRPC never deletes it).
+- Concurrency: `OnReadDone` & `OnWriteDone` can run on different threads → the outgoing
+  queue + `writing` flag need a mutex; the read buffer doesn't (reads never overlap).
+
+### What I converted (RobotLink only; OperatorFeed stays sync — mixed models legal)
+- `GrpcRobotCallbackGateway : RobotLink::CallbackService` — the factory: registry
+  (robot_id→reactor*), domain callbacks, `SendCommand` (find reactor → enqueue),
+  proto↔domain translation. `Link()` → `new GrpcRobotReactor(this)`.
+- `GrpcRobotReactor : ServerBidiReactor<Uplink,RobotCommand>` — per connection. Absorbs
+  the old `RobotLinkState` + BOTH threads: reader loop → StartRead/OnReadDone chain;
+  writer jthread+cv → StartWrite/OnWriteDone **pump** (`pumpLocked`: guard on
+  `writing`||empty → copy front into stable `outgoing` → StartWrite; OnWriteDone pops +
+  re-pumps; empty queue = chain goes dormant, self-restarts on next `enqueue`). No cv,
+  no threads of its own.
+- Registry lifetime: erase in `OnDone` under `registry_mutex_` BEFORE `delete this`;
+  `SendCommand` looks up + enqueues under the same mutex → the sync version's
+  `weak_ptr::lock()` TOCTOU dance becomes erase-before-delete ordering.
+- Why RobotLink and not OperatorFeed: the N-scaling side is the robots; OperatorFeed is
+  1–2 subscribers — convert where the thread pressure is. Mixed models legal because
+  `RegisterService` routes by per-METHOD handler metadata (sync vs callback), not the
+  object type — different services, different method paths, no collision.
+
+### Measured (`launch 6 robots`, sync vs reactor, `ls /proc/<pid>/task | wc -l`)
+- **SYNC:** 0 robots=20 → 6 robots=**32**. **delta ~2.00/robot.** `grpcpp_sync_ser` 2→14
+  (+12 = 6 gRPC handlers + 6 writer jthreads; writers inherit the handler thread's
+  `grpcpp_sync_ser` comm, so they hide there — process name stays 1).
+- **REACTOR:** 0 robots=20 → 6 robots=**20**. **delta 0.00/robot.** The 6 links ride the
+  fixed 16-thread `event_engine` pool; nothing added. The 2 remaining `grpcpp_sync_ser` =
+  OperatorFeed, still sync — the mixed model visible in `/proc`.
+- Both: probe LIVE hits > 0 → telemetry still lands in the track store (behavior kept).
+  Build `-Wall -Wextra` clean, exit 0. Harness saved as `tools/thread_count.sh`.
+
+### The 500-robot answer (defense)
+- **Sync:** ~20 + 2×500 = **~1,020 threads**, ~all blocked idle on a socket (GBs of stack
+  VM, scheduler thrash). "N robots ≈ 2N threads."
+- **Reactor:** **~20, flat** — the 16-thread pool absorbs all 500. Threads decoupled from
+  connections; an idle stream costs a heap object + socket FD, not a thread (C10k).
+- Honest nuance: at tiny N the reactor isn't cheaper (32 vs 20 at N=6 — the fixed pool
+  dominates); it wins by NOT scaling, and the crossover is early.
+- The one caveat: callbacks run on the SHARED pool → must not block. Ours don't (`upsert`
+  + `watchdog.record` are quick mutex ops); heavy work would need offloading, and at 500×
+  watch lock contention (why TrackStore uses a short map-lock + per-track locks).
+
+Status: conversion compiles clean + runs (telemetry lands, commands dispatch via the
+pump). Spike branch only — NOT merged. Post-Friday: decide whether to fold RobotLink's
+reactor into master, or keep sync + this branch as the "here's how it scales" exhibit.
